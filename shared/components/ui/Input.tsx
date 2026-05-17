@@ -7,7 +7,6 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export function Input({ label, className = '', ...props }: InputProps) {
   return (
     <div className="w-full flex flex-col">
-      {/* Modificado a text-[16px] para mantener simetría visual */}
       <label className="text-[16px] font-medium text-secondary-800 mb-[8px]">
         {label}
       </label>
@@ -20,10 +19,11 @@ export function Input({ label, className = '', ...props }: InputProps) {
         px-[24px] 
         flex 
         items-center 
+        border-2 
+        border-transparent
         hover:bg-secondary-200 
         focus-within:bg-secondary-100 
-        focus-within:ring-2 
-        focus-within:ring-primary-500/50 
+        focus-within:border-secondary-500 
         transition-all 
         duration-200
       ">

@@ -1,14 +1,27 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '../../../shared/components/ui/Input';
 import { Button } from '../../../shared/components/ui/Button';
-import { PasswordInput } from './PasswordInput';
-import { SocialButton } from './SocialButton';
+import { PasswordInput } from '../../../shared/components/auth/PasswordInput';
+import { SocialButton } from '../../../shared/components/auth/SocialButton';
 import { Icon } from '../../../shared/components/ui/Icon';
 import logoKids from '../../../app/favicon.png';
 
-export function LoginForm() {
+interface LoginFormProps {
+  onClose?: () => void;
+}
+
+export function LoginForm({ onClose }: LoginFormProps) {
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Datos enviados:', { email, password });
+  };
+
   return (
     <div className="
       w-full 
@@ -25,6 +38,7 @@ export function LoginForm() {
     ">
       <button
         type="button"
+        onClick={onClose}
         className="
           absolute 
           top-[32px] 
@@ -55,17 +69,21 @@ export function LoginForm() {
         Iniciar Sesión
       </h1>
 
-      <form className="w-full flex flex-col gap-[24px]" onSubmit={(e) => e.preventDefault()}>
+      <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-[20px]">
           <Input
             label="Correo"
             placeholder="Escriba su correo electrónico"
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
           <PasswordInput
             label="Contraseña"
             placeholder="Escriba su contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
