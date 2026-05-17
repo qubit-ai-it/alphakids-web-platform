@@ -12,7 +12,8 @@ export function PasswordInput({ label, className = '', ...props }: PasswordInput
 
   return (
     <div className="w-full flex flex-col">
-      <label className="text-[14px] font-medium text-secondary-800 mb-[8px]">
+      {/* Modificado a text-[16px] para igualar al input */}
+      <label className="text-[16px] font-medium text-secondary-800 mb-[8px]">
         {label}
       </label>
 
