@@ -35,20 +35,14 @@ alphakids-web-platform/
 │   │   │   │   ├── secciones/
 │   │   │   │   │   └── page.tsx     # CRUD secciones
 │   │   │   │   ├── docentes/
-│   │   │   │   │   └── page.tsx     # Gestión de docentes
+│   │   │   │   │   └── page.tsx      # Gestión de docentes
 │   │   │   │   └── metricas/
 │   │   │   │       └── page.tsx     # Métricas institucionales
 │   │   │   └── docente/              # Módulo Docente
 │   │   │       ├── aula/
 │   │   │       │   └── page.tsx     # Vista del aula
-│   │   │       ├── alumnos/
-│   │   │       │   └── page.tsx     # CRUD alumnos
-│   │   │       ├── vocabulario/
-│   │   │       │   └── page.tsx     # Banco de palabras compartidas
-│   │   │       ├── actividades/
-│   │   │       │   └── page.tsx     # Gestión de actividades
-│   │   │       └── reportes/
-│   │   │           └── page.tsx     # Generación de reportes
+│   │   │       └── alumnos/
+│   │   │           └── page.tsx     # Gestión de alumnos
 │   │   ├── layout.tsx                # Root layout
 │   │   └── page.tsx                  # Redirect a login o dashboard
 │   │
@@ -58,8 +52,7 @@ alphakids-web-platform/
 │   │   │       └── LoginForm.tsx
 │   │   ├── admin/                    # Lógica del Administrador
 │   │   │   ├── components/
-│   │   │   │   ├── InstitutionForm.tsx
-│   │   │   │   └── UserManagementForm.tsx
+│   │   │   │   └── InstitutionForm.tsx
 │   │   │   └── hooks/
 │   │   ├── director/                 # Lógica del Director
 │   │   │   ├── components/
@@ -68,38 +61,40 @@ alphakids-web-platform/
 │   │   │   │   └── TeacherAssignmentForm.tsx
 │   │   │   └── hooks/
 │   │   └── docente/                  # Lógica del Docente
-│   │       ├── components/
-│   │       │   ├── StudentForm.tsx      # Alta/Edición/Baja de alumnos
-│   │       │   ├── WordForm.tsx         # Crear palabras con imagen
-│   │       │   ├── ActivityForm.tsx      # Asignar actividades
-│   │       │   └── ReportGenerator.tsx   # Generar reportes
-│   │       └── hooks/
+│   │       └── components/
+│   │           └── StudentForm.tsx   # Gestión de alumnos
 │   │
 │   ├── shared/                       # Código compartido
 │   │   ├── components/               # Componentes UI reutilizables
-│   │   │   └── ui/
-│   │   │       ├── Button.tsx
-│   │   │       ├── Input.tsx
-│   │   │       ├── Select.tsx
-│   │   │       ├── Modal.tsx
-│   │   │       ├── Card.tsx
-│   │   │       ├── Table.tsx
-│   │   │       ├── Badge.tsx
-│   │   │       ├── Avatar.tsx
-│   │   │       ├── DatePicker.tsx
-│   │   │       └── FileUpload.tsx
+│   │   │   ├── ui/
+│   │   │   │   ├── Button.tsx
+│   │   │   │   ├── Input.tsx
+│   │   │   │   ├── Select.tsx
+│   │   │   │   ├── Modal.tsx
+│   │   │   │   ├── Card.tsx
+│   │   │   │   ├── Table.tsx
+│   │   │   │   ├── Badge.tsx
+│   │   │   │   ├── Avatar.tsx
+│   │   │   │   ├── DatePicker.tsx
+│   │   │   │   └── FileUpload.tsx
+│   │   │   └── auth/
+│   │   │       ├── AuthHeader.tsx
+│   │   │       ├── PasswordInput.tsx
+│   │   │       └── SocialButton.tsx
 │   │   ├── hooks/                    # Hooks reutilizables
 │   │   │   └── useAuth.ts
 │   │   └── lib/                      # Utilidades y constantes
 │   │       └── utils.ts
 │   │
 │   └── styles/
-│       └── globals.css               # Tokens de diseño
+│       └── globals.css               # Tokens de diseño y clases reutilizables
 │
 ├── public/
-│   └── favicon.ico                   # Icono de la pestaña del navegador
+│   └── favicon.png                   # Icono de la pestaña del navegador
 │
-├── docs/                             # Documentación adicional
+├── docs/
+│   ├── README.md                    # Documentación general
+│   └── database-schema.md           # Schema de base de datos
 │
 ├── package.json
 ├── pnpm-lock.yaml
@@ -114,7 +109,7 @@ alphakids-web-platform/
 |-----|------------|-----------------|
 | **Administrador** | Web | Gestión de instituciones, usuarios globales, métricas del sistema |
 | **Director** | Web | Gestión de grados, secciones, docentes; métricas institucionales |
-| **Docente** | Web | Gestión de aula, alumnos, vocabulario compartido, actividades, reportes |
+| **Docente** | Web | Gestión de aula, alumnos (vía sections.teacher_id) |
 | **Niño** | Móvil | Juego (OCR), mascota virtual, diccionario personal |
 | **Padre** | Móvil | Supervisión, perfiles de hijos, configuración parental |
 
