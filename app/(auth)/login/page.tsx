@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Modal } from '../../shared/components/ui/Modal';
-import { LoginForm } from '../../features/auth/components/LoginForm';
-import { Button } from '../../shared/components/ui/Button';
+import { Modal } from '@/shared/components/ui/Modal';
+import { LoginForm } from '@/features/auth/components/LoginForm';
+import { Button } from '@/shared/components/ui/Button';
 
 export default function LoginPage() {
   const [isOpen, setIsOpen] = useState(true);
@@ -11,7 +11,6 @@ export default function LoginPage() {
   return (
     <div className="w-full min-h-screen bg-secondary-50 p-[40px] font-sans relative">
 
-      {/* Contenido decorativo que simula la web detrás del Modal */}
       <div className="max-w-[1200px] mx-auto">
         <header className="flex justify-between items-center mb-[40px] pb-[20px] border-b border-secondary-200">
           <h2 className="text-[24px] font-bold text-secondary-900">AlphaKids Plataforma</h2>
@@ -38,7 +37,6 @@ export default function LoginPage() {
         </main>
       </div>
 
-      {/* Control reactivo para renderizar el modal en primer plano */}
       {isOpen && (
         <Modal>
           <LoginForm onClose={() => setIsOpen(false)} />
