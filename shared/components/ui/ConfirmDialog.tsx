@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Modal } from './Modal';
+import { Button } from './Button';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -28,11 +29,6 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
-  const confirmBtnClass =
-    variant === 'danger'
-      ? 'btn btn-danger cursor-pointer'
-      : 'btn btn-primary cursor-pointer';
-
   return (
     <Modal>
       <div className="modal-content max-w-[420px] w-full">
@@ -43,20 +39,22 @@ export function ConfirmDialog({
           <p className="text-secondary-700 text-[14px]">{message}</p>
         </div>
         <div className="modal-footer flex justify-end gap-[12px]">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={onCancel}
             disabled={isLoading}
-            className="btn btn-secondary cursor-pointer"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={variant === 'danger' ? 'danger' : 'primary'}
+            size="sm"
             onClick={onConfirm}
             disabled={isLoading}
-            className={confirmBtnClass}
           >
             {isLoading ? 'Procesando...' : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

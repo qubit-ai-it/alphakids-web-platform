@@ -9,6 +9,7 @@ Plataforma educativa web para la gestión de instituciones de nivel inicial (3-5
 | Framework | Next.js | 16.2.6 |
 | Lenguaje | TypeScript | 5.x |
 | Estilos | Tailwind CSS | 4.x |
+| Forms | React Hook Form + Zod | 7.x / 4.x |
 | Fuente | Onest | Google Fonts |
 | Deployment | Render | - |
 
@@ -16,84 +17,88 @@ Plataforma educativa web para la gestión de instituciones de nivel inicial (3-5
 
 ```
 alphakids-web-platform/
-├── src/
-│   ├── app/                          # Next.js App Router
-│   │   ├── (auth)/                   # Grupo de rutas - autenticación
-│   │   │   └── login/                # Página de login
-│   │   │       └── page.tsx
-│   │   ├── (dashboard)/              # Grupo de rutas - panel principal
-│   │   │   ├── admin/                # Módulo Administrador
-│   │   │   │   ├── instituciones/
-│   │   │   │   │   └── page.tsx     # CRUD instituciones
-│   │   │   │   ├── usuarios/
-│   │   │   │   │   └── page.tsx     # Gestión de usuarios
-│   │   │   │   └── metricas/
-│   │   │   │       └── page.tsx     # Métricas globales
-│   │   │   ├── director/             # Módulo Director
-│   │   │   │   ├── grados/
-│   │   │   │   │   └── page.tsx     # CRUD grados
-│   │   │   │   ├── secciones/
-│   │   │   │   │   └── page.tsx     # CRUD secciones
-│   │   │   │   ├── docentes/
-│   │   │   │   │   └── page.tsx      # Gestión de docentes
-│   │   │   │   └── metricas/
-│   │   │   │       └── page.tsx     # Métricas institucionales
-│   │   │   └── docente/              # Módulo Docente
-│   │   │       ├── aula/
-│   │   │       │   └── page.tsx     # Vista del aula
-│   │   │       └── alumnos/
-│   │   │           └── page.tsx     # Gestión de alumnos
-│   │   ├── layout.tsx                # Root layout
-│   │   └── page.tsx                  # Redirect a login o dashboard
-│   │
-│   ├── features/                     # Feature-based architecture
-│   │   ├── auth/                     # Lógica de autenticación
-│   │   │   └── components/
-│   │   │       └── LoginForm.tsx
-│   │   ├── admin/                    # Lógica del Administrador
-│   │   │   ├── components/
-│   │   │   │   └── InstitutionForm.tsx
-│   │   │   └── hooks/
-│   │   ├── director/                 # Lógica del Director
-│   │   │   ├── components/
-│   │   │   │   ├── GradeForm.tsx
-│   │   │   │   ├── SectionForm.tsx
-│   │   │   │   └── TeacherAssignmentForm.tsx
-│   │   │   └── hooks/
-│   │   └── docente/                  # Lógica del Docente
-│   │       └── components/
-│   │           └── StudentForm.tsx   # Gestión de alumnos
-│   │
-│   ├── shared/                       # Código compartido
-│   │   ├── components/               # Componentes UI reutilizables
-│   │   │   ├── ui/
-│   │   │   │   ├── Button.tsx
-│   │   │   │   ├── Input.tsx
-│   │   │   │   ├── Select.tsx
-│   │   │   │   ├── Modal.tsx
-│   │   │   │   ├── Card.tsx
-│   │   │   │   ├── Table.tsx
-│   │   │   │   ├── Badge.tsx
-│   │   │   │   ├── Avatar.tsx
-│   │   │   │   ├── DatePicker.tsx
-│   │   │   │   └── FileUpload.tsx
-│   │   │   └── auth/
-│   │   │       ├── AuthHeader.tsx
-│   │   │       ├── PasswordInput.tsx
-│   │   │       └── SocialButton.tsx
-│   │   ├── hooks/                    # Hooks reutilizables
-│   │   │   └── useAuth.ts
-│   │   └── lib/                      # Utilidades y constantes
-│   │       └── utils.ts
-│   │
-│   └── styles/
-│       └── globals.css               # Tokens de diseño y clases reutilizables
+├── app/
+│   ├── (auth)/                       # Grupo de rutas - autenticación
+│   │   ├── login/page.tsx            # Redirect a /
+│   │   ├── register/page.tsx         # Página de registro
+│   │   └── perfil/page.tsx           # Perfil de usuario
+│   ├── dashboard/                    # Panel principal (protegido)
+│   │   ├── layout.tsx                # Layout con sidebar + auth guard
+│   │   ├── page.tsx                  # Redirect por rol
+│   │   ├── admin/                    # Módulo Administrador
+│   │   │   ├── instituciones/page.tsx   # CRUD instituciones
+│   │   │   ├── usuarios/page.tsx        # CRUD usuarios
+│   │   │   └── metricas/page.tsx        # Métricas (próximamente)
+│   │   ├── director/                 # Módulo Director
+│   │   │   ├── grados/page.tsx          # CRUD grados
+│   │   │   ├── secciones/page.tsx       # CRUD secciones
+│   │   │   ├── docentes/page.tsx        # Docentes (próximamente)
+│   │   │   └── metricas/page.tsx        # Métricas (próximamente)
+│   │   └── docente/                  # Módulo Docente
+│   │       ├── aula/page.tsx            # Aula (próximamente)
+│   │       ├── alumnos/page.tsx         # CRUD alumnos
+│   │       ├── palabras/page.tsx        # CRUD palabras
+│   │       └── asignaciones/page.tsx    # CRUD asignaciones
+│   ├── layout.tsx                    # Root layout (AuthProvider + fonts)
+│   ├── page.tsx                      # Landing page + modal login
+│   └── globals.css                   # Tokens de diseño + clases utilitarias
 │
-├── public/
-│   └── favicon.png                   # Icono de la pestaña del navegador
+├── features/                         # Feature-based architecture
+│   ├── auth/                         # Autenticación
+│   │   ├── components/
+│   │   │   ├── LoginForm.tsx
+│   │   │   └── RegisterForm.tsx
+│   │   └── services/
+│   │       └── auth.service.ts
+│   ├── admin/                        # Lógica del Administrador
+│   │   ├── components/
+│   │   │   ├── UserForm.tsx
+│   │   │   └── InstitutionForm.tsx
+│   │   └── services/
+│   │       ├── users.service.ts
+│   │       └── institutions.service.ts
+│   ├── director/                     # Lógica del Director
+│   │   ├── components/
+│   │   │   ├── GradeForm.tsx
+│   │   │   └── SectionForm.tsx
+│   │   └── services/
+│   │       ├── grades.service.ts
+│   │       └── sections.service.ts
+│   └── docente/                      # Lógica del Docente
+│       ├── components/
+│       │   ├── StudentForm.tsx
+│       │   ├── WordForm.tsx
+│       │   └── WordAssignmentForm.tsx
+│       └── services/
+│           ├── students.service.ts
+│           ├── words.service.ts
+│           └── word-assignments.service.ts
+│
+├── shared/                           # Código compartido
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── Button.tsx            # Botón con 5 tamaños (xs-xl) + variantes
+│   │   │   ├── Input.tsx             # Input con label y error
+│   │   │   ├── Select.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   ├── Table.tsx             # Tabla con loading/empty/error states
+│   │   │   ├── Badge.tsx             # Badge con variantes por rol/estado
+│   │   │   └── ConfirmDialog.tsx     # Modal de confirmación
+│   │   └── auth/
+│   │       ├── AuthHeader.tsx
+│   │       ├── PasswordInput.tsx
+│   │       └── SocialButton.tsx
+│   ├── contexts/
+│   │   └── AuthContext.tsx           # Contexto de autenticación global
+│   ├── hooks/
+│   │   └── useAuth.ts               # Hook para consumir AuthContext
+│   └── lib/
+│       ├── api-client.ts            # Cliente HTTP con fetch + Bearer token
+│       ├── types.ts                 # Tipos compartidos (User, Grade, etc.)
+│       └── jwt.ts                   # Decodificación JWT + getInstitutionId
 │
 ├── docs/
-│   ├── README.md                    # Documentación general
+│   ├── README.md                    # Esta documentación
 │   └── database-schema.md           # Schema de base de datos
 │
 ├── package.json
@@ -108,9 +113,8 @@ alphakids-web-platform/
 | Rol | Plataforma | Funcionalidades |
 |-----|------------|-----------------|
 | **Administrador** | Web | Gestión de instituciones, usuarios globales, métricas del sistema |
-| **Director** | Web | Gestión de grados, secciones, docentes; métricas institucionales |
-| **Docente** | Web | Gestión de aula, alumnos (vía sections.teacher_id) |
-| **Niño** | Móvil | Juego (OCR), mascota virtual, diccionario personal |
+| **Director** | Web | Gestión de grados, secciones; asignación de docentes; métricas institucionales |
+| **Docente** | Web | Gestión de alumnos, diccionario de palabras, asignaciones palabra-alumno |
 | **Padre** | Móvil | Supervisión, perfiles de hijos, configuración parental |
 
 ## Decisiones de Arquitectura
@@ -120,9 +124,11 @@ alphakids-web-platform/
 | **Rendering** | SSR por defecto | Mejor performance, auth más seguro |
 | **CSR** | Solo en modales y forms interactivos | `"use client"` donde sea necesario |
 | **Estructura** | Feature-based | Escalabilidad, ownership claro por dominio |
-| **Folder** | `src/` | Separa código de configs en root |
 | **Forms** | React Hook Form + Zod | Validación tipada, mejor DX |
-| **API** | REST | Backend separado en PostgreSQL |
+| **API** | REST | Backend NestJS separado en PostgreSQL |
+| **Auth** | JWT + Contexto React | Token en localStorage, perfil en contexto global |
+| **Login** | Modal sobre landing page | Sin ruta separada, acceso directo desde `/` |
+| **Buttons** | 5 tamaños (xs-xl) + 6 variantes | Reutilizables vía CSS classes en globals.css |
 
 ## Diseño - Tokens CSS
 

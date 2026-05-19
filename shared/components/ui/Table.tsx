@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Button } from './Button';
 
 interface Column<T> {
   key: string;
@@ -49,12 +50,9 @@ export function Table<T>({
           <p className="error-state-title">Error al cargar los datos</p>
           <p className="empty-state-description">{error}</p>
           {onRetry && (
-            <button
-              onClick={onRetry}
-              className="btn btn-primary mt-[12px] cursor-pointer"
-            >
+            <Button onClick={onRetry} size="sm" className="mt-[12px]">
               Reintentar
-            </button>
+            </Button>
           )}
         </div>
       </div>

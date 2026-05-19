@@ -129,20 +129,20 @@ export default function AdminUsuariosPage() {
       header: 'Acciones',
       className: 'w-[120px]',
       render: (user: User) => (
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-[4px]">
           <button
             onClick={() => handleEdit(user)}
-            className="p-[6px] rounded-[6px] text-secondary-600 hover:bg-secondary-100 hover:text-primary-600 transition-colors cursor-pointer"
+            className="btn btn-xs btn-ghost"
             title="Editar"
           >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
+            <span className="material-symbols-outlined text-[16px]">edit</span>
           </button>
           <button
             onClick={() => setDeleteTarget(user)}
-            className="p-[6px] rounded-[6px] text-secondary-600 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+            className="btn btn-xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600"
             title="Eliminar"
           >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
+            <span className="material-symbols-outlined text-[16px]">delete</span>
           </button>
         </div>
       ),
@@ -156,8 +156,8 @@ export default function AdminUsuariosPage() {
           <h1 className="page-title">Usuarios</h1>
           <p className="page-subtitle">Gestión de usuarios de la plataforma</p>
         </div>
-        <Button onClick={handleCreate}>
-          <span className="material-symbols-outlined text-[20px] mr-[6px]">add</span>
+        <Button onClick={handleCreate} size="sm">
+          <span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>
           Crear Usuario
         </Button>
       </div>

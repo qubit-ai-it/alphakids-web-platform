@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
 import { PasswordInput } from '@/shared/components/auth/PasswordInput';
@@ -119,9 +120,9 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
                 <div className="text-center mt-[8px]">
                     <p className="text-[14px] text-secondary-600">
                         ¿Ya tienes una cuenta?{' '}
-                        <a href="/login" className="text-primary-500 font-semibold hover:text-primary-600 transition-colors">
+                        <Link href="/" className="text-primary-500 font-semibold hover:text-primary-600 transition-colors">
                             Inicia sesión aquí
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </form>

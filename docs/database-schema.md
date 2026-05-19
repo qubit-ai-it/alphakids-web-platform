@@ -133,13 +133,11 @@ Base de datos PostgreSQL para la plataforma AlphaKids.
 | `id` | UUID | Primary Key |
 | `institution_id` | UUID | Foreign Key → institutions.id |
 | `section_id` | UUID | Foreign Key → sections.id |
-| `enrollment_code` | VARCHAR(50) | Código de inscripción único |
 | `first_name` | VARCHAR(100) | Nombre del estudiante |
 | `last_name` | VARCHAR(100) | Apellido del estudiante |
 | `birth_date` | DATE | Fecha de nacimiento |
-| `gender` | ENUM | Género |
-| `photo_url` | TEXT | URL de la foto |
-| `has_photo_consent` | BOOLEAN | Consentimiento de foto |
+| `gender` | ENUM | Género (MALE, FEMALE, OTHER) |
+| `avatar_url` | TEXT | URL del avatar |
 | `is_active` | BOOLEAN | Si está activo |
 | `registered_by` | UUID | Foreign Key → users.id (quien registró) |
 | `created_at` | TIMESTAMP | Fecha de creación |
@@ -147,7 +145,38 @@ Base de datos PostgreSQL para la plataforma AlphaKids.
 
 ---
 
-## CAPA 5 — AUDITORÍA
+## CAPA 5 — PALABRAS Y ASIGNACIONES
+
+### words
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID | Primary Key |
+| `text` | VARCHAR(100) | Palabra o texto |
+| `difficulty_label` | ENUM | Dificultad (INICIAL, BASICO, INTERMEDIO, AVANZADO, EXPERTO) |
+| `image_url` | TEXT | URL de imagen asociada |
+| `audio_url` | TEXT | URL de audio asociado |
+| `is_active` | BOOLEAN | Si la palabra está activa |
+| `created_by` | UUID | Foreign Key → users.id (quien la creó) |
+| `created_at` | TIMESTAMP | Fecha de creación |
+| `updated_at` | TIMESTAMP | Fecha de última actualización |
+
+### word_assignments
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | UUID | Primary Key |
+| `word_id` | UUID | Foreign Key → words.id |
+| `assigned_by` | UUID | Foreign Key → users.id (quien asignó) |
+| `student_id` | UUID | Foreign Key → students.id |
+| `section_id` | UUID | Foreign Key → sections.id |
+| `status` | ENUM | Estado (PENDING, COMPLETED, EXPIRED) |
+| `scheduled_at` | TIMESTAMP | Fecha programada |
+| `expires_at` | TIMESTAMP | Fecha de expiración |
+| `created_at` | TIMESTAMP | Fecha de creación |
+| `updated_at` | TIMESTAMP | Fecha de última actualización |
+
+---
+
+## CAPA 6 — AUDITORÍA
 
 ### audit_logs
 | Campo | Tipo | Descripción |
@@ -193,7 +222,16 @@ institutions (1:N) students (desnormalización controlada)
 users (1:N) students ← students.registered_by = users.id
 ```
 
-### CAPA 5 — Auditoría
+### CAPA 5 — Palabras y Asignaciones
+```
+users (1:N) words ← words.created_by = users.id
+words (1:N) word_assignments ← word_assignments.word_id = words.id
+students (1:N) word_assignments ← word_assignments.student_id = students.id
+sections (1:N) word_assignments ← word_assignments.section_id = sections.id
+users (1:N) word_assignments ← word_assignments.assigned_by = users.id
+```
+
+### CAPA 6 — Auditoría
 ```
 users (1:N) audit_logs
 ```
@@ -214,6 +252,7 @@ users (1:N) audit_logs
 | 🟣 purple | RBAC - Roles y Permisos |
 | 🟡 yellow | Estructura Institucional |
 | 🟢 green | Estudiantes |
+| 🔵 blue | Palabras y Asignaciones |
 | 🟠 orange | Auditoría |
 
 ---
@@ -241,4 +280,22 @@ users (1:N) audit_logs
    SELECT r.* FROM roles r
    JOIN user_roles ur ON r.id = ur.role_id
    WHERE ur.user_id = ?
+   ```
+
+5. **Palabras asignadas a un alumno**: Para obtener las palabras asignadas a un estudiante:
+   ```sql
+   SELECT w.text, w.difficulty_label, wa.status, wa.scheduled_at
+   FROM word_assignments wa
+   JOIN words w ON w.id = wa.word_id
+   WHERE wa.student_id = ?
+   ORDER BY wa.scheduled_at DESC
+   ```
+
+6. **Asignaciones por sección**: Para obtener todas las asignaciones de una sección:
+   ```sql
+   SELECT wa.*, w.text, s.first_name, s.last_name
+   FROM word_assignments wa
+   JOIN words w ON w.id = wa.word_id
+   JOIN students s ON s.id = wa.student_id
+   WHERE wa.section_id = ?
    ```

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Input } from '../../../shared/components/ui/Input';
 import { Button } from '../../../shared/components/ui/Button';
 import { PasswordInput } from '../../../shared/components/auth/PasswordInput';
@@ -141,8 +142,8 @@ export function LoginForm({ onClose }: LoginFormProps) {
           )}
         </div>
 
-        <div className="mt-[8px]">
-          <Button type="submit" disabled={isLoading}>
+        <div className="mt-[8px] w-full">
+          <Button type="submit" variant="auth" disabled={isLoading}>
             {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </Button>
         </div>
@@ -155,9 +156,9 @@ export function LoginForm({ onClose }: LoginFormProps) {
         <div className="text-center mt-[8px]">
           <p className="text-[14px] text-secondary-600">
             ¿No tienes una cuenta?{' '}
-            <a href="/register" className="text-primary-500 font-semibold hover:text-primary-600 transition-colors">
+            <Link href="/register" className="text-primary-500 font-semibold hover:text-primary-600 transition-colors">
               Regístrate aquí
-            </a>
+            </Link>
           </p>
         </div>
 

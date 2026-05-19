@@ -117,15 +117,10 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFo
           </div>
 
           <div className="modal-footer flex justify-end gap-[12px]">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isLoading}
-              className="btn btn-secondary cursor-pointer"
-            >
+            <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
-            </button>
-            <Button type="submit" disabled={isLoading}>
+            </Button>
+            <Button type="submit" size="md" disabled={isLoading}>
               {isLoading ? 'Creando...' : 'Crear Institución'}
             </Button>
           </div>

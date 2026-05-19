@@ -101,20 +101,20 @@ export default function AdminInstitucionesPage() {
       header: 'Acciones',
       className: 'w-[120px]',
       render: () => (
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-[4px]">
           <button
             disabled
-            className="p-[6px] rounded-[6px] text-secondary-300 cursor-not-allowed"
+            className="btn btn-xs btn-ghost"
             title="Editar - No disponible (requiere fix UUID en backend)"
           >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
+            <span className="material-symbols-outlined text-[16px]">edit</span>
           </button>
           <button
             disabled
-            className="p-[6px] rounded-[6px] text-secondary-300 cursor-not-allowed"
+            className="btn btn-xs btn-ghost"
             title="Eliminar - No disponible (requiere fix UUID en backend)"
           >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
+            <span className="material-symbols-outlined text-[16px]">delete</span>
           </button>
         </div>
       ),
@@ -128,8 +128,8 @@ export default function AdminInstitucionesPage() {
           <h1 className="page-title">Instituciones</h1>
           <p className="page-subtitle">Gestión de instituciones educativas</p>
         </div>
-        <Button onClick={handleCreate}>
-          <span className="material-symbols-outlined text-[20px] mr-[6px]">add</span>
+        <Button onClick={handleCreate} size="sm">
+          <span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>
           Crear Institución
         </Button>
       </div>

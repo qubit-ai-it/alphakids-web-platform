@@ -12,7 +12,7 @@ export default function DashboardPage() {
     if (isLoading) return;
 
     if (!user) {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
 
@@ -32,7 +32,7 @@ export default function DashboardPage() {
         router.replace('/dashboard');
         break;
       default:
-        router.replace('/login');
+      router.replace('/');
     }
   }, [user, isLoading, router]);
 

@@ -26,6 +26,8 @@ const roleNavMap: Record<string, NavItem[]> = {
   teacher: [
     { href: '/dashboard/docente/aula', label: 'Aula', icon: 'meeting_room' },
     { href: '/dashboard/docente/alumnos', label: 'Alumnos', icon: 'child_care' },
+    { href: '/dashboard/docente/palabras', label: 'Palabras', icon: 'spellcheck' },
+    { href: '/dashboard/docente/asignaciones', label: 'Asignaciones', icon: 'assignment' },
   ],
   parent: [],
 };
@@ -41,7 +43,7 @@ export default function DashboardLayout({
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
+      router.replace('/');
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -124,7 +126,7 @@ export default function DashboardLayout({
           <button
             onClick={() => {
               logout();
-              router.push('/login');
+              router.push('/');
             }}
             className="w-full flex items-center gap-[8px] px-[12px] py-[8px] rounded-[8px] text-[14px] text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900 transition-colors cursor-pointer"
           >
