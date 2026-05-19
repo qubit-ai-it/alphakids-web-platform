@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Onest } from "next/font/google";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
+import { ToastProvider } from "@/shared/contexts/ToastContext";
+import { ToastContainer } from "@/shared/components/ui/ToastContainer";
 import "./globals.css";
 
 const onest = Onest({
@@ -25,7 +27,10 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <AuthProvider>{children}</AuthProvider>
+          <ToastContainer />
+        </ToastProvider>
       </body>
     </html>
   );

@@ -5,8 +5,14 @@ import { Table } from '@/shared/components/ui/Table';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
+import { Modal } from '@/shared/components/ui/Modal';
 import { WordForm } from '@/features/docente/components/WordForm';
+import type { WordFormData } from '@/features/docente/components/WordForm';
 import { wordsService } from '@/features/docente/services/words.service';
+import { resizeImage } from '@/shared/lib/image';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { Word, DifficultyLabel } from '@/shared/lib/types';
 
 const difficultyBadgeMap: Record<DifficultyLabel, string> = {
@@ -30,6 +36,7 @@ export default function DocentePalabrasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState<string>('');
+  const [filterText, setFilterText] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [editingWord, setEditingWord] = useState<Word | null>(null);
@@ -37,6 +44,10 @@ export default function DocentePalabrasPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Word | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [viewingWord, setViewingWord] = useState<Word | null>(null);
+
+  const { addToast } = useToast();
 
   const initialized = useRef(false);
 
@@ -61,45 +72,72 @@ export default function DocentePalabrasPage() {
     refetch();
   }, [refetch]);
 
-  const filteredWords = filterDifficulty
-    ? words.filter((w) => w.difficultyLabel === filterDifficulty)
-    : words;
+  const filteredWords = words.filter((w) => {
+    const matchesDifficulty = !filterDifficulty || w.difficultyLabel === filterDifficulty;
+    const matchesText = !filterText || w.text.toLowerCase().includes(filterText.toLowerCase());
+    return matchesDifficulty && matchesText;
+  });
 
   const handleCreate = () => {
     setEditingWord(null);
     setShowForm(true);
   };
 
+  const setMobileAction = useSetMobileAction(null);
+  useEffect(() => {
+    setMobileAction({ label: 'Crear Palabra', icon: 'add', onClick: handleCreate });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEdit = (word: Word) => {
     setEditingWord(word);
     setShowForm(true);
   };
 
-  const handleFormSubmit = async (data: Record<string, unknown>) => {
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Error al leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+
+  const handleFormSubmit = async (data: WordFormData, imageFile?: File, audioFile?: File) => {
     setFormLoading(true);
     try {
+      let imageUrl: string | undefined;
+      let audioUrl: string | undefined;
+
+      if (imageFile) {
+        imageUrl = await resizeImage(imageFile);
+      }
+      if (audioFile) {
+        audioUrl = await readFileAsDataUrl(audioFile);
+      }
+
       if (editingWord) {
         await wordsService.update(editingWord.id, {
-          text: data.text as string | undefined,
-          difficultyLabel: data.difficultyLabel as string | undefined,
-          imageUrl: data.imageUrl as string | undefined,
-          audioUrl: data.audioUrl as string | undefined,
-          isActive: data.isActive as boolean | undefined,
+          text: data.text,
+          difficultyLabel: data.difficultyLabel,
+          imageUrl: imageUrl ?? undefined,
+          audioUrl: audioUrl ?? undefined,
+          isActive: data.isActive,
         });
       } else {
         await wordsService.create({
-          text: data.text as string,
-          difficultyLabel: data.difficultyLabel as string,
-          imageUrl: data.imageUrl as string | undefined,
-          audioUrl: data.audioUrl as string | undefined,
-          isActive: data.isActive as boolean | undefined,
+          text: data.text,
+          difficultyLabel: data.difficultyLabel,
+          imageUrl,
+          audioUrl,
+          isActive: data.isActive,
         });
       }
       setShowForm(false);
       setEditingWord(null);
+      addToast('success', editingWord ? 'Palabra actualizada' : 'Palabra creada');
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar');
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     } finally {
       setFormLoading(false);
     }
@@ -111,13 +149,24 @@ export default function DocentePalabrasPage() {
     try {
       await wordsService.delete(deleteTarget.id);
       setDeleteTarget(null);
+      addToast('success', 'Palabra eliminada');
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar');
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     } finally {
       setDeleteLoading(false);
     }
   };
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const columns = [
     {
@@ -159,19 +208,26 @@ export default function DocentePalabrasPage() {
     {
       key: 'actions',
       header: 'Acciones',
-      className: 'w-[100px]',
+      className: 'w-[130px]',
       render: (w: Word) => (
         <div className="flex items-center gap-[4px]">
           <button
+            onClick={() => setViewingWord(w)}
+            className="btn btn-2xs btn-ghost"
+            title="Ver detalle"
+          >
+            <span className="material-symbols-outlined text-[16px]">visibility</span>
+          </button>
+          <button
             onClick={() => handleEdit(w)}
-            className="btn btn-xs btn-ghost"
+            className="btn btn-2xs btn-ghost"
             title="Editar"
           >
             <span className="material-symbols-outlined text-[16px]">edit</span>
           </button>
           <button
             onClick={() => setDeleteTarget(w)}
-            className="btn btn-xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600"
+            className="btn btn-2xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600"
             title="Eliminar"
           >
             <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -188,15 +244,30 @@ export default function DocentePalabrasPage() {
           <h1 className="page-title">Palabras</h1>
           <p className="page-subtitle">Gestión del diccionario de palabras</p>
         </div>
-        <Button onClick={handleCreate} size="sm">
+        <Button onClick={handleCreate} size="sm" className="hidden md:inline-flex">
           <span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>
           Crear Palabra
         </Button>
       </div>
 
-      <div className="mb-[16px]">
-        <div className="flex items-center gap-[12px]">
-          <label className="text-[14px] font-medium text-secondary-700">Filtrar por dificultad:</label>
+      <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
+        <div className="flex items-center gap-[8px] max-w-[300px] flex-1">
+          <span className="material-symbols-outlined text-[18px] text-secondary-400">search</span>
+          <input
+            type="text"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="Buscar por palabra..."
+            className="input"
+          />
+          {filterText && (
+            <button onClick={() => setFilterText('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-[8px]">
+          <label className="text-[14px] font-medium text-secondary-700">Dificultad:</label>
           <select
             value={filterDifficulty}
             onChange={(e) => setFilterDifficulty(e.target.value)}
@@ -208,11 +279,16 @@ export default function DocentePalabrasPage() {
             ))}
           </select>
           {filterDifficulty && (
-            <span className="text-[13px] text-secondary-500">
-              {filteredWords.length} palabra{filteredWords.length !== 1 ? 's' : ''}
-            </span>
+            <button onClick={() => setFilterDifficulty('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
           )}
         </div>
+        {(filterDifficulty || filterText) && (
+          <span className="text-[13px] text-secondary-500">
+            {filteredWords.length} palabra{filteredWords.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
       <Table<Word>
@@ -222,9 +298,14 @@ export default function DocentePalabrasPage() {
         isLoading={isLoading}
         error={error}
         onRetry={refetch}
-        emptyMessage={filterDifficulty
-          ? `No hay palabras con dificultad "${difficultyLabels[filterDifficulty as DifficultyLabel] ?? filterDifficulty}"`
+        emptyMessage={filterDifficulty || filterText
+          ? filterDifficulty && filterText
+            ? `No hay palabras "${difficultyLabels[filterDifficulty as DifficultyLabel] ?? filterDifficulty}" que coincidan con "${filterText}"`
+            : filterDifficulty
+              ? `No hay palabras con dificultad "${difficultyLabels[filterDifficulty as DifficultyLabel] ?? filterDifficulty}"`
+              : `No hay palabras que coincidan con "${filterText}"`
           : 'No hay palabras registradas. Crea la primera usando el botón superior.'}
+        pageSize={10}
       />
 
       {showForm && (
@@ -248,6 +329,73 @@ export default function DocentePalabrasPage() {
         onCancel={() => setDeleteTarget(null)}
         isLoading={deleteLoading}
       />
+
+      {viewingWord && (
+        <Modal>
+          <div className="modal-content max-w-[480px] w-full">
+            <div className="modal-header">
+              <h2 className="modal-title">{viewingWord.text}</h2>
+              <button
+                type="button"
+                onClick={() => setViewingWord(null)}
+                className="text-secondary-600 hover:text-secondary-900 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[24px]">close</span>
+              </button>
+            </div>
+            <div className="modal-body flex flex-col gap-[20px]">
+              <div className="flex gap-[16px]">
+                {viewingWord.imageUrl ? (
+                  <img
+                    src={viewingWord.imageUrl}
+                    alt={viewingWord.text}
+                    className="w-[120px] h-[120px] rounded-[16px] object-cover border border-secondary-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-[120px] h-[120px] rounded-[16px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[40px] text-secondary-400">image</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-[12px] flex-1">
+                  <div>
+                    <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Dificultad</p>
+                    <span className={difficultyBadgeMap[viewingWord.difficultyLabel] ?? ''}>
+                      {difficultyLabels[viewingWord.difficultyLabel] ?? viewingWord.difficultyLabel}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Estado</p>
+                    <Badge variant={viewingWord.isActive ? 'success' : 'error'}>
+                      {viewingWord.isActive ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                  {viewingWord.audioUrl && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[4px]">Audio</p>
+                      <audio controls src={viewingWord.audioUrl} className="h-[32px] w-full max-w-[240px]" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-[24px]">
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Creado</p>
+                  <p className="text-[13px] text-secondary-700">{formatDate(viewingWord.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Actualizado</p>
+                  <p className="text-[13px] text-secondary-700">{formatDate(viewingWord.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button variant="secondary" size="sm" onClick={() => setViewingWord(null)}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

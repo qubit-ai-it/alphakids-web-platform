@@ -19,6 +19,7 @@ interface AuthState {
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  updateProfile: (data: Partial<Pick<User, 'name' | 'avatarUrl'>>) => void;
 }
 
 export const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -88,6 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const updateProfile = useCallback(
+    (data: Partial<Pick<User, 'name' | 'avatarUrl'>>) => {
+      setUser((prev) => (prev ? { ...prev, ...data } : prev));
+    },
+    [],
+  );
+
   const isLoading = !hydrated;
 
   const value = useMemo(
@@ -100,8 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       clearError,
+      updateProfile,
     }),
-    [user, isLoading, error, login, register, logout, clearError],
+    [user, isLoading, error, login, register, logout, clearError, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

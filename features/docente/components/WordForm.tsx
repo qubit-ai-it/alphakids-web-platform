@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,15 +22,13 @@ const wordSchema = z.object({
   difficultyLabel: z.enum(['INICIAL', 'BASICO', 'INTERMEDIO', 'AVANZADO', 'EXPERTO'], {
     message: 'Selecciona una dificultad',
   }),
-  imageUrl: z.string().optional().or(z.literal('')),
-  audioUrl: z.string().optional().or(z.literal('')),
   isActive: z.boolean().optional(),
 });
 
-type WordFormData = z.infer<typeof wordSchema>;
+export type WordFormData = z.infer<typeof wordSchema>;
 
 interface WordFormProps {
-  onSubmit: (data: WordFormData) => Promise<void>;
+  onSubmit: (data: WordFormData, imageFile?: File, audioFile?: File) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
   word?: Word | null;
@@ -38,6 +36,12 @@ interface WordFormProps {
 
 export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps) {
   const isEdit = !!word;
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+
+  const existingImageUrl = word?.imageUrl ?? null;
 
   const {
     register,
@@ -48,11 +52,32 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
     defaultValues: {
       text: word?.text ?? '',
       difficultyLabel: (word?.difficultyLabel as WordFormData['difficultyLabel']) ?? 'BASICO',
-      imageUrl: word?.imageUrl ?? '',
-      audioUrl: word?.audioUrl ?? '',
       isActive: word?.isActive ?? true,
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAudioFile(e.target.files?.[0] ?? null);
+  };
+
+  const handleFormSubmit = (data: WordFormData) => {
+    onSubmit(data, imageFile ?? undefined, audioFile ?? undefined);
+  };
+
+  const imageSrc = imagePreview ?? existingImageUrl;
 
   return (
     <Modal>
@@ -70,7 +95,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Palabra"
@@ -98,21 +123,54 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
               )}
             </div>
 
-            <Input
-              label="URL de imagen"
-              placeholder="https://ejemplo.com/imagen.png"
-              disabled={isLoading}
-              error={errors.imageUrl?.message}
-              {...register('imageUrl')}
-            />
+            <div className="w-full flex flex-col">
+              <label className="label-auth">Imagen</label>
+              <div className="flex items-center gap-[12px]">
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt="Vista previa"
+                    className="w-[64px] h-[64px] rounded-[12px] object-cover border border-secondary-200"
+                  />
+                ) : (
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">image</span>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isLoading}
+                    onChange={handleImageChange}
+                    className="text-[14px] text-secondary-700 file:mr-[12px] file:py-[8px] file:px-[16px] file:rounded-[8px] file:border-0 file:text-[13px] file:font-medium file:bg-primary-100 file:text-primary-700 file:cursor-pointer hover:file:bg-primary-200"
+                  />
+                  <p className="text-[11px] text-secondary-500 mt-[6px]">PNG, JPG o WEBP. Se redimensionará a 400x400px.</p>
+                </div>
+              </div>
+            </div>
 
-            <Input
-              label="URL de audio"
-              placeholder="https://ejemplo.com/audio.mp3"
-              disabled={isLoading}
-              error={errors.audioUrl?.message}
-              {...register('audioUrl')}
-            />
+            <div className="w-full flex flex-col">
+              <label className="label-auth">Audio</label>
+              <div className="flex items-center gap-[12px]">
+                <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    disabled={isLoading}
+                    onChange={handleAudioChange}
+                    className="text-[14px] text-secondary-700 file:mr-[12px] file:py-[8px] file:px-[16px] file:rounded-[8px] file:border-0 file:text-[13px] file:font-medium file:bg-primary-100 file:text-primary-700 file:cursor-pointer hover:file:bg-primary-200"
+                  />
+                  {audioFile && (
+                    <p className="text-[12px] text-primary-600 mt-[6px]">{audioFile.name}</p>
+                  )}
+                  <p className="text-[11px] text-secondary-500 mt-[6px]">MP3, WAV o OGG.</p>
+                </div>
+              </div>
+            </div>
 
             <div className="flex items-center gap-[8px]">
               <input
@@ -132,7 +190,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
+            <Button type="submit" size="sm" disabled={isLoading}>
               {isLoading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear'}
             </Button>
           </div>

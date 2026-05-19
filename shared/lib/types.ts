@@ -10,9 +10,30 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   roles: UserRole[];
+}
+
+export interface InstitutionMember {
+  id: string;
+  institutionId: string;
+  userId: string;
+  roleId: string;
+  joinedAt: string;
+  leftAt: string | null;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+  role?: {
+    id: string;
+    name: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';

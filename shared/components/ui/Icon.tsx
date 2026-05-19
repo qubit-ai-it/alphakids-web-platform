@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type IconName = 'close' | 'visibility' | 'visibility_off' | 'google' | 'apple' | 'person' | 'account_circle' | 'badge' | 'logout' | 'home' | 'refresh';
+export type IconName = 'close' | 'visibility' | 'visibility_off' | 'google' | 'apple' | 'person' | 'account_circle' | 'badge' | 'logout' | 'home' | 'refresh' | 'settings' | 'chevron_left' | 'chevron_right' | 'menu_open' | 'menu' | 'expand_more' | 'expand_less' | 'add_a_photo';
 
 interface IconProps {
   name: IconName;

@@ -56,11 +56,11 @@ export function LoginForm({ onClose }: LoginFormProps) {
   return (
     <div className="
       w-full
-      max-w-[604px]
+      modal-md
       bg-white
-      p-[32px]
-      sm:p-[48px]
-      rounded-[32px]
+      p-[24px]
+      sm:p-[36px]
+      rounded-[24px]
       shadow-xl
       flex
       flex-col
@@ -72,8 +72,8 @@ export function LoginForm({ onClose }: LoginFormProps) {
         onClick={onClose}
         className="
           absolute
-          top-[32px]
-          right-[32px]
+          top-[24px]
+          right-[24px]
           text-secondary-900
           hover:text-secondary-600
           active:scale-90
@@ -85,29 +85,29 @@ export function LoginForm({ onClose }: LoginFormProps) {
           justify-center
         "
       >
-        <Icon name="close" className="text-[28px]" />
+        <Icon name="close" className="text-[24px]" />
       </button>
 
-      <div className="flex justify-center mb-[24px] mt-[16px]">
+      <div className="flex justify-center mb-[16px] mt-[8px]">
         <img
           src={logoKids.src}
           alt="AlphaKids Logo"
-          className="w-[80px] h-[80px] object-contain rounded-[20px]"
+          className="w-[64px] h-[64px] object-contain rounded-[16px]"
         />
       </div>
 
-      <h1 className="text-[36px] font-bold text-secondary-900 text-center leading-tight mb-[32px]">
+      <h1 className="text-[28px] font-bold text-secondary-900 text-center leading-tight mb-[20px]">
         Iniciar Sesión
       </h1>
 
       {authError && (
-        <div className="mb-[16px] p-[12px] bg-red-100 text-red-700 rounded-[8px] text-[14px]">
+        <div className="mb-[12px] p-[10px] bg-red-100 text-red-700 rounded-[8px] text-[13px]">
           {authError}
         </div>
       )}
 
-      <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col gap-[20px]">
+      <form className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit(onSubmit)}>
+        <div className="flex flex-col gap-[12px]">
           <Input
             label="Correo"
             placeholder="Escriba su correo electrónico"
@@ -143,7 +143,7 @@ export function LoginForm({ onClose }: LoginFormProps) {
         </div>
 
         <div className="mt-[8px] w-full">
-          <Button type="submit" variant="auth" disabled={isLoading}>
+          <Button type="submit" variant="primary" size="fluid" disabled={isLoading}>
             {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </Button>
         </div>

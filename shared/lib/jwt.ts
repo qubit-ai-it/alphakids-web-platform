@@ -2,7 +2,16 @@ interface JwtPayload {
   sub: string;
   email: string;
   roles: string[];
-  memberships?: { institutionId: string; role: { id: string; name: string } }[];
+  memberships?: {
+    institutionId: string;
+    institution?: { name: string };
+    role: { id: string; name: string };
+  }[];
+  sectionAssignments?: {
+    sectionId: string;
+    sectionName: string;
+    gradeId: string;
+  }[];
   iat: number;
   exp: number;
 }
@@ -31,4 +40,20 @@ export function getInstitutionId(): string | undefined {
   if (!token) return undefined;
   const payload = decodeToken(token);
   return payload?.memberships?.[0]?.institutionId;
+}
+
+export function getInstitutionName(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const token = localStorage.getItem('access_token');
+  if (!token) return undefined;
+  const payload = decodeToken(token);
+  return payload?.memberships?.[0]?.institution?.name;
+}
+
+export function getTeacherSectionIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  const token = localStorage.getItem('access_token');
+  if (!token) return [];
+  const payload = decodeToken(token);
+  return payload?.sectionAssignments?.map((a) => a.sectionId) ?? [];
 }

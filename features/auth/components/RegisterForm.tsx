@@ -26,11 +26,11 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
     return (
         <div className="
       w-full 
-      max-w-[604px] 
+      modal-md
       bg-white 
-      p-[32px] 
-      sm:p-[48px] 
-      rounded-[32px] 
+      p-[24px] 
+      sm:p-[36px] 
+      rounded-[24px] 
       shadow-xl 
       flex 
       flex-col 
@@ -42,8 +42,8 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
                 onClick={onClose}
                 className="
           absolute 
-          top-[32px] 
-          right-[32px] 
+          top-[24px] 
+          right-[24px] 
           text-secondary-900 
           hover:text-secondary-600 
           active:scale-90 
@@ -55,28 +55,28 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
           justify-center
         "
             >
-                <Icon name="close" className="text-[28px]" />
+                <Icon name="close" className="text-[24px]" />
             </button>
 
-            <div className="flex justify-center mb-[24px] mt-[16px]">
+            <div className="flex justify-center mb-[16px] mt-[8px]">
                 <img
                     src={logoKids.src}
                     alt="AlphaKids Logo"
-                    className="w-[80px] h-[80px] object-contain rounded-[20px]"
+                    className="w-[64px] h-[64px] object-contain rounded-[16px]"
                 />
             </div>
 
-            <div className="text-center mb-[32px]">
-                <h1 className="text-[36px] font-bold text-secondary-900 leading-tight mb-[8px]">
+            <div className="text-center mb-[20px]">
+                <h1 className="text-[28px] font-bold text-secondary-900 leading-tight mb-[6px]">
                     Crea tu Cuenta
                 </h1>
-                <p className="text-[16px] text-secondary-600">
+                <p className="text-[14px] text-secondary-600">
                     Únete a la plataforma de AlphaKids
                 </p>
             </div>
 
-            <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSubmit}>
-                <div className="flex flex-col gap-[20px]">
+            <form className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit}>
+                <div className="flex flex-col gap-[12px]">
                     <Input
                         label="Nombre Completo"
                         placeholder="Escriba su nombre"
@@ -103,7 +103,7 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
                 </div>
 
                 <div className="mt-[8px]">
-                    <Button type="submit">Registrarse</Button>
+                    <Button type="submit" variant="primary" size="fluid">Registrarse</Button>
                 </div>
 
                 <div className="flex items-center w-full">

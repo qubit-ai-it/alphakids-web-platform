@@ -7,6 +7,8 @@ export interface CreateStudentInput {
   birthDate?: string;
   gender?: string;
   avatarUrl?: string;
+  institutionId?: string;
+  sectionId?: string;
 }
 
 export interface UpdateStudentInput {

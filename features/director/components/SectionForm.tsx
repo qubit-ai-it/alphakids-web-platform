@@ -77,7 +77,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
+            <Button type="submit" size="sm" disabled={isLoading}>
               {isLoading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear'}
             </Button>
           </div>

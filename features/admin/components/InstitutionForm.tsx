@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import type { Institution } from '@/shared/lib/types';
 
 const institutionSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(150, 'Máximo 150 caracteres'),
@@ -14,19 +15,25 @@ const institutionSchema = z.object({
   ruc: z.string().min(1, 'El RUC es requerido').max(20, 'Máximo 20 caracteres'),
   address: z.string().min(1, 'La dirección es requerida'),
   phone: z.string().max(20, 'Máximo 20 caracteres').optional().or(z.literal('')),
-  logoUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
   isActive: z.boolean().optional(),
 });
 
-type InstitutionFormData = z.infer<typeof institutionSchema>;
+export type InstitutionFormData = z.infer<typeof institutionSchema>;
 
 interface InstitutionFormProps {
-  onSubmit: (data: InstitutionFormData) => Promise<void>;
+  onSubmit: (data: InstitutionFormData, logoFile?: File) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
+  initialData?: Institution;
 }
 
-export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFormProps) {
+export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: InstitutionFormProps) {
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const existingLogoUrl = initialData?.logoUrl ?? null;
+  const isEditing = !!initialData;
+
   const {
     register,
     handleSubmit,
@@ -34,21 +41,39 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFo
   } = useForm<InstitutionFormData>({
     resolver: zodResolver(institutionSchema),
     defaultValues: {
-      name: '',
-      slug: '',
-      ruc: '',
-      address: '',
-      phone: '',
-      logoUrl: '',
-      isActive: true,
+      name: initialData?.name ?? '',
+      slug: initialData?.slug ?? '',
+      ruc: initialData?.ruc ?? '',
+      address: initialData?.address ?? '',
+      phone: initialData?.phone ?? '',
+      isActive: initialData?.isActive ?? true,
     },
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setLogoFile(null);
+      setLogoPreview(null);
+      return;
+    }
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleFormSubmit = (data: InstitutionFormData) => {
+    onSubmit(data, logoFile ?? undefined);
+  };
+
+  const logoSrc = logoPreview ?? existingLogoUrl;
 
   return (
     <Modal>
       <div className="modal-content max-w-[520px] w-full">
         <div className="modal-header">
-          <h2 className="modal-title">Crear Institución</h2>
+          <h2 className="modal-title">{isEditing ? 'Editar Institución' : 'Crear Institución'}</h2>
           <button
             type="button"
             onClick={onCancel}
@@ -58,7 +83,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -95,13 +120,34 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFo
               error={errors.phone?.message}
               {...register('phone')}
             />
-            <Input
-              label="URL del Logo"
-              placeholder="https://ejemplo.com/logo.png"
-              disabled={isLoading}
-              error={errors.logoUrl?.message}
-              {...register('logoUrl')}
-            />
+
+            <div className="w-full flex flex-col">
+              <label className="label-auth">Logo</label>
+              <div className="flex items-center gap-[12px]">
+                {logoSrc ? (
+                  <img
+                    src={logoSrc}
+                    alt="Logo preview"
+                    className="w-[64px] h-[64px] rounded-[12px] object-cover border border-secondary-200"
+                  />
+                ) : (
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">image</span>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isLoading}
+                    onChange={handleFileChange}
+                    className="text-[14px] text-secondary-700 file:mr-[12px] file:py-[8px] file:px-[16px] file:rounded-[8px] file:border-0 file:text-[13px] file:font-medium file:bg-primary-100 file:text-primary-700 file:cursor-pointer hover:file:bg-primary-200"
+                  />
+                  <p className="text-[11px] text-secondary-500 mt-[6px]">PNG, JPG o WEBP. Se redimensionará a 400x400px.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-[8px]">
               <input
                 type="checkbox"
@@ -120,8 +166,8 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading }: InstitutionFo
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
-              {isLoading ? 'Creando...' : 'Crear Institución'}
+            <Button type="submit" size="sm" disabled={isLoading}>
+              {isLoading ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Crear Institución'}
             </Button>
           </div>
         </form>

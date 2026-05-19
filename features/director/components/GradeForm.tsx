@@ -94,7 +94,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
+            <Button type="submit" size="sm" disabled={isLoading}>
               {isLoading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear'}
             </Button>
           </div>

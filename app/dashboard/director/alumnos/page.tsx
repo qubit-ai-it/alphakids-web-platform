@@ -6,12 +6,13 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { studentsService } from '@/features/docente/services/students.service';
-import { getTeacherSectionIds } from '@/shared/lib/jwt';
+import { getInstitutionId } from '@/shared/lib/jwt';
 import type { Student } from '@/shared/lib/types';
 
-export default function DocenteAlumnosPage() {
+export default function DirectorAlumnosPage() {
+  const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [filterText, setFilterText] = useState('');
@@ -19,12 +20,11 @@ export default function DocenteAlumnosPage() {
   const initialized = useRef(false);
 
   const refetch = useCallback(() => {
-    const sectionIds = getTeacherSectionIds();
-    if (sectionIds.length === 0) { setStudents([]); setIsLoading(false); return; }
-    setIsLoading(true);
-    setError(null);
+    const id = getInstitutionId();
+    if (!id) return;
+    setIsLoading(true); setError(null);
     studentsService.getAll().then((data) => {
-      setStudents(data.filter((s) => sectionIds.includes(s.sectionId ?? '')));
+      setStudents(data.filter((s) => s.institutionId === id));
       setIsLoading(false);
     }).catch((err: Error) => {
       setError(err.message || 'Error al cargar alumnos');
@@ -35,7 +35,9 @@ export default function DocenteAlumnosPage() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    refetch();
+    const id = getInstitutionId();
+    setInstitutionId(id ?? null);
+    if (id) void Promise.resolve().then(() => refetch());
   }, [refetch]);
 
   const filteredStudents = students.filter((s) => {
@@ -72,11 +74,20 @@ export default function DocenteAlumnosPage() {
     )},
   ];
 
+  if (!institutionId) {
+    return (
+      <div>
+        <div className="page-header"><h1 className="page-title">Alumnos</h1><p className="page-subtitle">Gestión de alumnos</p></div>
+        <div className="card"><div className="empty-state"><p className="empty-state-title">Sin institución asignada</p><p className="empty-state-description">No tienes una institución asignada.</p></div></div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="page-header">
         <h1 className="page-title">Alumnos</h1>
-        <p className="page-subtitle">Alumnos asignados a tus secciones</p>
+        <p className="page-subtitle">Visualización de alumnos por grado y sección</p>
       </div>
 
       <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
@@ -122,7 +133,7 @@ export default function DocenteAlumnosPage() {
         isLoading={isLoading}
         error={error}
         onRetry={refetch}
-        emptyMessage={filterText || filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos en tus secciones.'}
+        emptyMessage={filterText || filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos registrados en esta institución.'}
         pageSize={10}
       />
 

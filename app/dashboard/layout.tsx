@@ -1,9 +1,13 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { getInstitutionName } from '@/shared/lib/jwt';
+import { Sidebar } from '@/shared/components/layout/Sidebar';
+import { MobileHeader } from '@/shared/components/layout/MobileHeader';
+import { MobileActionProvider } from '@/shared/contexts/MobileActionContext';
+import { ProfileModal } from '@/features/profile/components/ProfileModal';
 
 interface NavItem {
   href: string;
@@ -21,6 +25,7 @@ const roleNavMap: Record<string, NavItem[]> = {
     { href: '/dashboard/director/grados', label: 'Grados', icon: 'school' },
     { href: '/dashboard/director/secciones', label: 'Secciones', icon: 'view_column' },
     { href: '/dashboard/director/docentes', label: 'Docentes', icon: 'person' },
+    { href: '/dashboard/director/alumnos', label: 'Alumnos', icon: 'child_care' },
     { href: '/dashboard/director/metricas', label: 'Métricas', icon: 'monitoring' },
   ],
   teacher: [
@@ -39,7 +44,8 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -70,77 +76,35 @@ export default function DashboardLayout({
             ? 'Apoderado'
             : 'Usuario';
 
+  const institutionName = getInstitutionName();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
   return (
-    <div className="min-h-screen flex bg-secondary-100">
-      <aside className="w-[260px] bg-white border-r border-secondary-200 flex flex-col shrink-0">
-        <div className="p-[24px] border-b border-secondary-200">
-          <Link href="/dashboard" className="flex items-center gap-[12px]">
-            <div className="w-[36px] h-[36px] bg-primary-500 rounded-[10px] flex items-center justify-center">
-              <span className="text-white font-bold text-[18px]">A</span>
-            </div>
-            <span className="text-[20px] font-bold text-secondary-900">
-              AlphaKids
-            </span>
-          </Link>
-        </div>
+    <MobileActionProvider>
+      <div className="h-screen flex bg-secondary-100 overflow-hidden">
+        <MobileHeader onMenuToggle={() => setMobileSidebarOpen(true)} />
 
-        <nav className="flex-1 py-[16px] px-[12px]">
-          <ul className="flex flex-col gap-[4px]">
-            {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-[12px] px-[16px] py-[10px] rounded-[10px] text-[14px] font-medium transition-colors ${
-                      isActive
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'text-secondary-700 hover:bg-secondary-100 hover:text-secondary-900'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <Sidebar
+          user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
+          navItems={navItems}
+          roleName={roleName}
+          institutionName={institutionName ?? null}
+          onOpenProfile={() => setProfileOpen(true)}
+          onLogout={handleLogout}
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
 
-        <div className="p-[16px] border-t border-secondary-200">
-          <div className="flex items-center gap-[12px] mb-[12px]">
-            <div className="w-[40px] h-[40px] rounded-full bg-primary-100 flex items-center justify-center">
-              <span className="text-primary-700 font-semibold text-[16px]">
-                {user.name?.[0]?.toUpperCase() ?? user.email[0].toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-medium text-secondary-900 truncate">
-                {user.name ?? user.email}
-              </p>
-              <p className="text-[12px] text-secondary-600">{roleName}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              logout();
-              router.push('/');
-            }}
-            className="w-full flex items-center gap-[8px] px-[12px] py-[8px] rounded-[8px] text-[14px] text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              logout
-            </span>
-            Cerrar sesión
-          </button>
-        </div>
-      </aside>
+        <main className="flex-1 overflow-y-auto pt-14 md:pt-0 sidebar-scroll">
+          <div className="p-[16px] md:p-[32px]">{children}</div>
+        </main>
 
-      <main className="flex-1 overflow-auto">
-        <div className="p-[32px]">{children}</div>
-      </main>
-    </div>
+        <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      </div>
+    </MobileActionProvider>
   );
 }

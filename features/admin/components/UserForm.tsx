@@ -1,13 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
-import type { User } from '@/shared/lib/types';
+import { institutionsService } from '@/features/admin/services/institutions.service';
+import type { User, Institution, InstitutionMember } from '@/shared/lib/types';
+
+const availableRoles = ['admin', 'director', 'teacher', 'parent'] as const;
+const needsInstitution = (roles: string[]) =>
+  roles.includes('director') || roles.includes('teacher');
 
 const userCreateSchema = z.object({
   email: z.string().min(1, 'El correo es requerido').email('Correo inválido'),
@@ -24,21 +29,69 @@ const userEditSchema = z.object({
 type UserCreateData = z.infer<typeof userCreateSchema>;
 type UserEditData = z.infer<typeof userEditSchema>;
 
-const availableRoles = ['admin', 'director', 'teacher', 'parent'] as const;
+interface CreateOutput {
+  email: string;
+  password: string;
+  name?: string;
+  roles: string[];
+  institutionId?: string;
+}
+
+interface EditOutput {
+  name?: string;
+  roles: string[];
+  institutionId?: string;
+}
 
 interface UserFormProps {
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  onSubmitCreate?: (data: CreateOutput) => Promise<void>;
+  onSubmitEdit?: (data: EditOutput) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
   user?: User | null;
+  currentInstitution?: { id: string; name: string } | null;
+  currentMember?: InstitutionMember | null;
 }
 
-export function UserForm({ onSubmit, onCancel, isLoading, user }: UserFormProps) {
+interface UserFormProps {
+  onSubmitCreate?: (data: CreateOutput) => Promise<void>;
+  onSubmitEdit?: (data: EditOutput) => Promise<void>;
+  onCancel: () => void;
+  isLoading: boolean;
+  user?: User | null;
+  currentInstitution?: { id: string; name: string } | null;
+  currentMember?: InstitutionMember | null;
+}
+
+export function UserForm({
+  onSubmitCreate,
+  onSubmitEdit,
+  onCancel,
+  isLoading,
+  user,
+  currentInstitution,
+  currentMember,
+}: UserFormProps) {
   if (user) {
-    return <EditUserForm user={user} onSubmit={onSubmit} onCancel={onCancel} isLoading={isLoading} />;
+    return (
+      <EditUserForm
+        user={user}
+        onSubmit={onSubmitEdit!}
+        onCancel={onCancel}
+        isLoading={isLoading}
+        currentInstitution={currentInstitution}
+        currentMember={currentMember}
+      />
+    );
   }
 
-  return <CreateUserForm onSubmit={onSubmit} onCancel={onCancel} isLoading={isLoading} />;
+  return (
+    <CreateUserForm
+      onSubmit={onSubmitCreate!}
+      onCancel={onCancel}
+      isLoading={isLoading}
+    />
+  );
 }
 
 function CreateUserForm({
@@ -46,18 +99,104 @@ function CreateUserForm({
   onCancel,
   isLoading,
 }: {
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  onSubmit: (data: CreateOutput) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
 }) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState('');
+  const initialized = useRef(false);
+
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<UserCreateData>({
     resolver: zodResolver(userCreateSchema),
     defaultValues: { email: '', password: '', name: '', roles: [] },
   });
+
+  const selectedRoles = (watch('roles') ?? []) as string[];
+  const showStep2 = needsInstitution(selectedRoles);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    institutionsService.getAll().then(setInstitutions).catch(() => {});
+  }, []);
+
+  const goNext = () => {
+    if (showStep2) {
+      setStep(2);
+    }
+  };
+
+  const goBack = () => setStep(1);
+
+  const onFinalSubmit = (data: UserCreateData) => {
+    onSubmit({
+      ...data,
+      roles: data.roles ?? [],
+      institutionId: showStep2 ? selectedInstitutionId : undefined,
+    });
+  };
+
+  if (step === 2 && showStep2) {
+    return (
+      <Modal>
+        <div className="modal-content max-w-[520px] w-full">
+          <div className="modal-header">
+            <h2 className="modal-title">Asignar Institución</h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-secondary-600 hover:text-secondary-900 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+          </div>
+
+          <div className="modal-body flex flex-col gap-[16px]">
+            <p className="text-[14px] text-secondary-600">
+              Selecciona la institución a la que pertenecerá este usuario.
+            </p>
+
+            <div className="w-full flex flex-col">
+              <label className="label">Institución</label>
+              <select
+                value={selectedInstitutionId}
+                onChange={(e) => setSelectedInstitutionId(e.target.value)}
+                className="input"
+              >
+                <option value="">Seleccionar institución...</option>
+                {institutions.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="modal-footer flex justify-between">
+            <Button variant="secondary" size="sm" type="button" onClick={goBack} disabled={isLoading}>
+              Atrás
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isLoading || !selectedInstitutionId}
+              onClick={handleSubmit(onFinalSubmit)}
+            >
+              {isLoading ? 'Guardando...' : 'Crear Usuario'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal>
@@ -73,7 +212,7 @@ function CreateUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit((data) => onSubmit(data as Record<string, unknown>))}>
+        <form onSubmit={handleSubmit(showStep2 ? goNext : onFinalSubmit)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Correo"
@@ -124,8 +263,8 @@ function CreateUserForm({
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
-              {isLoading ? 'Guardando...' : 'Crear'}
+            <Button type="submit" size="sm" disabled={isLoading}>
+              {showStep2 ? 'Siguiente' : 'Crear Usuario'}
             </Button>
           </div>
         </form>
@@ -139,15 +278,26 @@ function EditUserForm({
   onSubmit,
   onCancel,
   isLoading,
+  currentInstitution,
+  currentMember,
 }: {
   user: User | null;
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  onSubmit: (data: EditOutput) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
+  currentInstitution?: { id: string; name: string } | null;
+  currentMember?: InstitutionMember | null;
 }) {
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState(
+    currentInstitution?.id ?? '',
+  );
+  const initialized = useRef(false);
+
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<UserEditData>({
     resolver: zodResolver(userEditSchema),
@@ -156,6 +306,27 @@ function EditUserForm({
       roles: user?.roles.map((r) => r.role.name) ?? [],
     },
   });
+
+  const selectedRoles = (watch('roles') ?? []) as string[];
+  const showInstitution = needsInstitution(selectedRoles);
+
+  const isDirectorOrTeacher = user?.roles.some((r) =>
+    ['director', 'teacher'].includes(r.role.name),
+  );
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    institutionsService.getAll().then(setInstitutions).catch(() => {});
+  }, []);
+
+  const onFinalSubmit = (data: UserEditData) => {
+    onSubmit({
+      name: data.name,
+      roles: data.roles ?? [],
+      institutionId: showInstitution ? selectedInstitutionId || undefined : undefined,
+    });
+  };
 
   return (
     <Modal>
@@ -171,7 +342,7 @@ function EditUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit((data) => onSubmit(data as Record<string, unknown>))}>
+        <form onSubmit={handleSubmit(onFinalSubmit)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -200,13 +371,37 @@ function EditUserForm({
                 ))}
               </div>
             </div>
+
+            {(isDirectorOrTeacher || showInstitution) && (
+              <div className="w-full flex flex-col">
+                <label className="label">Institución</label>
+                {currentInstitution && (
+                  <p className="text-[12px] text-secondary-500 mb-[4px]">
+                    Actual: {currentInstitution.name}
+                  </p>
+                )}
+                <select
+                  value={selectedInstitutionId}
+                  onChange={(e) => setSelectedInstitutionId(e.target.value)}
+                  disabled={isLoading}
+                  className="input"
+                >
+                  <option value="">Sin institución</option>
+                  {institutions.map((inst) => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer flex justify-end gap-[12px]">
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button type="submit" size="md" disabled={isLoading}>
+            <Button type="submit" size="sm" disabled={isLoading}>
               {isLoading ? 'Guardando...' : 'Actualizar'}
             </Button>
           </div>

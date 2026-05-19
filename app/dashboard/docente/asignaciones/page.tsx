@@ -4,8 +4,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Table } from '@/shared/components/ui/Table';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
+import { Modal } from '@/shared/components/ui/Modal';
 import { WordAssignmentForm } from '@/features/docente/components/WordAssignmentForm';
 import { wordAssignmentsService } from '@/features/docente/services/word-assignments.service';
+import { getTeacherSectionIds } from '@/shared/lib/jwt';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { WordAssignment, WordAssignmentStatus } from '@/shared/lib/types';
 
 const statusBadgeClass: Record<WordAssignmentStatus, string> = {
@@ -24,7 +29,9 @@ export default function DocenteAsignacionesPage() {
   const [assignments, setAssignments] = useState<WordAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  const { addToast } = useToast();
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterText, setFilterText] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<WordAssignment | null>(null);
@@ -33,21 +40,30 @@ export default function DocenteAsignacionesPage() {
   const [deleteTarget, setDeleteTarget] = useState<WordAssignment | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const [viewingAssignment, setViewingAssignment] = useState<WordAssignment | null>(null);
+
   const initialized = useRef(false);
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback(async () => {
+    const sectionIds = getTeacherSectionIds();
+    if (sectionIds.length === 0) { setAssignments([]); setIsLoading(false); return; }
     setIsLoading(true);
     setError(null);
-    wordAssignmentsService
-      .getAll()
-      .then((data) => {
-        setAssignments(data);
-        setIsLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message || 'Error al cargar asignaciones');
-        setIsLoading(false);
-      });
+    try {
+      const results = await Promise.all(
+        sectionIds.map(() =>
+          wordAssignmentsService.getAll().catch(() => [] as WordAssignment[]),
+        ),
+      );
+      const all = results.flat();
+      const unique = Array.from(new Map(all.map((a) => [a.id, a])).values());
+      setAssignments(unique);
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      setError(title ? `${title}: ${message}` : 'Error al cargar asignaciones');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -56,19 +72,24 @@ export default function DocenteAsignacionesPage() {
     refetch();
   }, [refetch]);
 
-  const filteredAssignments = filterStatus
-    ? assignments.filter((a) => a.status === filterStatus)
-    : assignments;
+  const filteredAssignments = assignments.filter((a) => {
+    const matchesStatus = !filterStatus || a.status === filterStatus;
+    const studentName = a.student ? `${a.student.firstName} ${a.student.lastName}` : '';
+    const wordText = a.word?.text ?? '';
+    const matchesText =
+      !filterText ||
+      studentName.toLowerCase().includes(filterText.toLowerCase()) ||
+      wordText.toLowerCase().includes(filterText.toLowerCase());
+    return matchesStatus && matchesText;
+  });
 
-  const handleCreate = () => {
-    setEditingAssignment(null);
-    setShowForm(true);
-  };
+  const handleCreate = () => { setEditingAssignment(null); setShowForm(true); };
 
-  const handleEdit = (assignment: WordAssignment) => {
-    setEditingAssignment(assignment);
-    setShowForm(true);
-  };
+  const setMobileAction = useSetMobileAction(null);
+  useEffect(() => {
+    setMobileAction({ label: 'Nueva Asignación', icon: 'add', onClick: handleCreate });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleEdit = (a: WordAssignment) => { setEditingAssignment(a); setShowForm(true); };
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     setFormLoading(true);
@@ -89,9 +110,11 @@ export default function DocenteAsignacionesPage() {
       }
       setShowForm(false);
       setEditingAssignment(null);
+      addToast('success', editingAssignment ? 'Asignación actualizada' : 'Asignación creada');
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar');
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     } finally {
       setFormLoading(false);
     }
@@ -103,109 +126,79 @@ export default function DocenteAsignacionesPage() {
     try {
       await wordAssignmentsService.delete(deleteTarget.id);
       setDeleteTarget(null);
+      addToast('success', 'Asignación eliminada');
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar');
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     } finally {
       setDeleteLoading(false);
     }
   };
 
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
   const columns = [
-    {
-      key: 'student',
-      header: 'Alumno',
-      render: (a: WordAssignment) => (
-        <span className="text-[14px] font-medium text-secondary-900">
-          {a.student ? `${a.student.firstName} ${a.student.lastName}` : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'word',
-      header: 'Palabra',
-      render: (a: WordAssignment) => (
-        <span className="text-[14px] text-secondary-700">
-          {a.word?.text ?? '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Estado',
-      className: 'w-[110px]',
-      render: (a: WordAssignment) => (
-        <span className={statusBadgeClass[a.status] ?? 'badge-secondary'}>
-          {statusLabels[a.status] ?? a.status}
-        </span>
-      ),
-    },
-    {
-      key: 'scheduled',
-      header: 'Programado',
-      render: (a: WordAssignment) => (
-        <span className="text-[13px] text-secondary-600">
-          {a.scheduledAt ? new Date(a.scheduledAt).toLocaleDateString('es-PE') : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Acciones',
-      className: 'w-[100px]',
-      render: (a: WordAssignment) => (
-        <div className="flex items-center gap-[4px]">
-          <button
-            onClick={() => handleEdit(a)}
-            className="btn btn-xs btn-ghost"
-            title="Editar estado"
-          >
-            <span className="material-symbols-outlined text-[16px]">edit</span>
-          </button>
-          <button
-            onClick={() => setDeleteTarget(a)}
-            className="btn btn-xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600"
-            title="Eliminar"
-          >
-            <span className="material-symbols-outlined text-[16px]">delete</span>
-          </button>
-        </div>
-      ),
-    },
+    { key: 'student', header: 'Alumno', render: (a: WordAssignment) => <span className="text-[14px] font-medium text-secondary-900">{a.student ? `${a.student.firstName} ${a.student.lastName}` : '-'}</span> },
+    { key: 'word', header: 'Palabra', render: (a: WordAssignment) => <span className="text-[14px] text-secondary-700">{a.word?.text ?? '-'}</span> },
+    { key: 'status', header: 'Estado', className: 'w-[110px]', render: (a: WordAssignment) => <span className={statusBadgeClass[a.status] ?? 'badge-secondary'}>{statusLabels[a.status] ?? a.status}</span> },
+    { key: 'scheduled', header: 'Programado', render: (a: WordAssignment) => <span className="text-[13px] text-secondary-600">{a.scheduledAt ? new Date(a.scheduledAt).toLocaleDateString('es-PE') : '-'}</span> },
+    { key: 'actions', header: 'Acciones', className: 'w-[130px]', render: (a: WordAssignment) => (
+      <div className="flex items-center gap-[4px]">
+        <button onClick={() => setViewingAssignment(a)} className="btn btn-2xs btn-ghost" title="Ver detalle"><span className="material-symbols-outlined text-[16px]">visibility</span></button>
+        <button onClick={() => handleEdit(a)} className="btn btn-2xs btn-ghost" title="Editar estado"><span className="material-symbols-outlined text-[16px]">edit</span></button>
+        <button onClick={() => setDeleteTarget(a)} className="btn btn-2xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600" title="Eliminar"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+      </div>
+    )},
   ];
 
   return (
     <div>
       <div className="page-header flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Asignaciones</h1>
-          <p className="page-subtitle">Gestión de palabras asignadas a alumnos</p>
-        </div>
-        <Button onClick={handleCreate} size="sm">
-          <span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>
-          Nueva Asignación
-        </Button>
+        <div><h1 className="page-title">Asignaciones</h1><p className="page-subtitle">Gestión de palabras asignadas a alumnos</p></div>
+        <Button onClick={handleCreate} size="sm" className="hidden md:inline-flex"><span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>Nueva Asignación</Button>
       </div>
 
-      <div className="mb-[16px]">
-        <div className="flex items-center gap-[12px]">
-          <label className="text-[14px] font-medium text-secondary-700">Filtrar por estado:</label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="input max-w-[200px]"
-          >
-            <option value="">Todos</option>
-            {Object.entries(statusLabels).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          {filterStatus && (
-            <span className="text-[13px] text-secondary-500">
-              {filteredAssignments.length} asignación{filteredAssignments.length !== 1 ? 'es' : ''}
-            </span>
+      <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
+        <div className="flex items-center gap-[8px] max-w-[320px] flex-1">
+          <span className="material-symbols-outlined text-[18px] text-secondary-400">search</span>
+          <input
+            type="text"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="Buscar por alumno o palabra..."
+            className="input"
+          />
+          {filterText && (
+            <button onClick={() => setFilterText('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
           )}
         </div>
+        <div className="flex items-center gap-[8px]">
+          <label className="text-[13px] font-medium text-secondary-600">Estado:</label>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input max-w-[160px]">
+            <option value="">Todos</option>
+            {Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          {filterStatus && (
+            <button onClick={() => setFilterStatus('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
+        {(filterStatus || filterText) && (
+          <span className="text-[13px] text-secondary-500">
+            {filteredAssignments.length} asignación{filteredAssignments.length !== 1 ? 'es' : ''}
+          </span>
+        )}
       </div>
 
       <Table<WordAssignment>
@@ -215,32 +208,72 @@ export default function DocenteAsignacionesPage() {
         isLoading={isLoading}
         error={error}
         onRetry={refetch}
-        emptyMessage={filterStatus
-          ? `No hay asignaciones con estado "${statusLabels[filterStatus as WordAssignmentStatus] ?? filterStatus}"`
-          : 'No hay asignaciones. Crea la primera usando el botón superior.'}
+        emptyMessage={
+          filterStatus || filterText
+            ? filterStatus && filterText
+              ? `No hay asignaciones con estado "${statusLabels[filterStatus as WordAssignmentStatus] ?? filterStatus}" que coincidan con "${filterText}"`
+              : filterStatus
+                ? `No hay asignaciones con estado "${statusLabels[filterStatus as WordAssignmentStatus] ?? filterStatus}"`
+                : `No hay asignaciones que coincidan con "${filterText}"`
+            : 'No hay asignaciones en tus secciones.'
+        }
+        pageSize={10}
       />
 
-      {showForm && (
-        <WordAssignmentForm
-          onSubmit={handleFormSubmit}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingAssignment(null);
-          }}
-          isLoading={formLoading}
-          assignment={editingAssignment}
-        />
+      {showForm && <WordAssignmentForm onSubmit={handleFormSubmit} onCancel={() => { setShowForm(false); setEditingAssignment(null); }} isLoading={formLoading} assignment={editingAssignment} />}
+      <ConfirmDialog isOpen={!!deleteTarget} title="Eliminar Asignación" message="¿Estás seguro de eliminar esta asignación?" confirmLabel="Eliminar" onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} isLoading={deleteLoading} />
+
+      {viewingAssignment && (
+        <Modal>
+          <div className="modal-content max-w-[480px] w-full">
+            <div className="modal-header">
+              <h2 className="modal-title">Detalle de Asignación</h2>
+              <button type="button" onClick={() => setViewingAssignment(null)} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
+                <span className="material-symbols-outlined text-[24px]">close</span>
+              </button>
+            </div>
+            <div className="modal-body flex flex-col gap-[20px]">
+              <div>
+                <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Alumno</p>
+                <p className="text-[14px] text-secondary-900">{viewingAssignment.student ? `${viewingAssignment.student.firstName} ${viewingAssignment.student.lastName}` : '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Palabra</p>
+                <p className="text-[14px] text-secondary-700">{viewingAssignment.word?.text ?? '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Estado</p>
+                <span className={statusBadgeClass[viewingAssignment.status] ?? 'badge-secondary'}>
+                  {statusLabels[viewingAssignment.status] ?? viewingAssignment.status}
+                </span>
+              </div>
+              <div className="flex gap-[24px]">
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Programado</p>
+                  <p className="text-[13px] text-secondary-700">{viewingAssignment.scheduledAt ? new Date(viewingAssignment.scheduledAt).toLocaleDateString('es-PE') : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Expira</p>
+                  <p className="text-[13px] text-secondary-700">{viewingAssignment.expiresAt ? new Date(viewingAssignment.expiresAt).toLocaleDateString('es-PE') : '-'}</p>
+                </div>
+              </div>
+              <div className="flex gap-[24px]">
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Creado</p>
+                  <p className="text-[13px] text-secondary-700">{formatDate(viewingAssignment.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-secondary-500 uppercase tracking-[0.05em] mb-[2px]">Actualizado</p>
+                  <p className="text-[13px] text-secondary-700">{formatDate(viewingAssignment.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button variant="secondary" size="sm" onClick={() => setViewingAssignment(null)}>Cerrar</Button>
+            </div>
+          </div>
+        </Modal>
       )}
-
-      <ConfirmDialog
-        isOpen={!!deleteTarget}
-        title="Eliminar Asignación"
-        message={`¿Estás seguro de eliminar esta asignación?`}
-        confirmLabel="Eliminar"
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
-        isLoading={deleteLoading}
-      />
     </div>
   );
 }
