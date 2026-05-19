@@ -86,7 +86,7 @@ export function ProfileForm({ onClose }: ProfileFormProps) {
                 </div>
 
                 <div className="mt-[8px]">
-                    <Button type="submit">Guardar Cambios</Button>
+                    <Button type="submit" variant="auth">Guardar Cambios</Button>
                 </div>
 
                 <div className="text-center mt-[8px]">
