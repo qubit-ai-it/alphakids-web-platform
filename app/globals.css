@@ -66,9 +66,6 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-size: var(--text-button);
-    line-height: var(--leading-button);
-    padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     transition: all 0.2s;
     cursor: pointer;
@@ -76,6 +73,7 @@
     font-weight: 500;
   }
 
+  /* ---- Variantes de color ---- */
   .btn-primary {
     background-color: var(--color-primary-500);
     color: white;
@@ -127,18 +125,42 @@
     cursor: not-allowed;
   }
 
+  /* ---- 5 tamaños ---- */
+  .btn-xs {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-caption);
+    line-height: var(--leading-caption);
+    border-radius: 0.375rem;
+  }
+
   .btn-sm {
-    padding: 0.5rem 1rem;
+    padding: 0.375rem 0.75rem;
     font-size: var(--text-body-sm);
+    line-height: var(--leading-body-sm);
+  }
+
+  .btn-md {
+    padding: 0.5rem 1rem;
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
   }
 
   .btn-lg {
-    padding: 1rem 2rem;
+    padding: 0.75rem 1.5rem;
     font-size: var(--text-body-lg);
+    line-height: var(--leading-body-lg);
+  }
+
+  .btn-xl {
+    padding: 1rem 2rem;
+    font-size: var(--text-h4);
+    line-height: var(--leading-h4);
+    border-radius: 0.75rem;
   }
 
   .btn-icon {
-    padding: 0.75rem;
+    padding: 0.5rem;
+    aspect-ratio: 1;
   }
 
   /* ==================== FORMS ==================== */

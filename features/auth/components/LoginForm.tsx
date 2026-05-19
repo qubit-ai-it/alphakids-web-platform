@@ -1,57 +1,86 @@
-// src/features/auth/components/LoginForm.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import { Input } from '../../../shared/components/ui/Input';
 import { Button } from '../../../shared/components/ui/Button';
 import { PasswordInput } from '../../../shared/components/auth/PasswordInput';
 import { SocialButton } from '../../../shared/components/auth/SocialButton';
 import { Icon } from '../../../shared/components/ui/Icon';
+import { useAuth } from '../../../shared/hooks/useAuth';
 import logoKids from '../../../app/favicon.png';
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'El correo es requerido')
+    .email('Ingrese un correo válido'),
+  password: z
+    .string()
+    .min(1, 'La contraseña es requerida')
+    .min(8, 'Mínimo 8 caracteres'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onClose?: () => void;
 }
 
 export function LoginForm({ onClose }: LoginFormProps) {
+  const router = useRouter();
+  const { login, isLoading, error: authError, clearError } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Datos enviados:', { email, password });
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      await login(data.email, data.password);
+      router.push('/dashboard');
+    } catch {
+      // error is handled by auth context
+    }
   };
 
   return (
     <div className="
-      w-full 
-      max-w-[604px] 
-      bg-white 
-      p-[32px] 
-      sm:p-[48px] 
-      rounded-[32px] 
-      shadow-xl 
-      flex 
-      flex-col 
-      relative 
+      w-full
+      max-w-[604px]
+      bg-white
+      p-[32px]
+      sm:p-[48px]
+      rounded-[32px]
+      shadow-xl
+      flex
+      flex-col
+      relative
       font-sans
     ">
       <button
         type="button"
         onClick={onClose}
         className="
-          absolute 
-          top-[32px] 
-          right-[32px] 
-          text-secondary-900 
-          hover:text-secondary-600 
-          active:scale-90 
-          transition-all 
-          duration-200 
-          cursor-pointer 
-          flex 
-          items-center 
+          absolute
+          top-[32px]
+          right-[32px]
+          text-secondary-900
+          hover:text-secondary-600
+          active:scale-90
+          transition-all
+          duration-200
+          cursor-pointer
+          flex
+          items-center
           justify-center
         "
       >
@@ -70,27 +99,52 @@ export function LoginForm({ onClose }: LoginFormProps) {
         Iniciar Sesión
       </h1>
 
-      <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSubmit}>
+      {authError && (
+        <div className="mb-[16px] p-[12px] bg-red-100 text-red-700 rounded-[8px] text-[14px]">
+          {authError}
+        </div>
+      )}
+
+      <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-[20px]">
           <Input
             label="Correo"
             placeholder="Escriba su correo electrónico"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+            disabled={isLoading}
+            {...register('email')}
+            onChange={(e) => {
+              register('email').onChange(e);
+              if (authError) clearError();
+            }}
           />
+          {errors.email && (
+            <span className="text-red-600 text-[12px] -mt-[12px]">
+              {errors.email.message}
+            </span>
+          )}
+
           <PasswordInput
             label="Contraseña"
             placeholder="Escriba su contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            disabled={isLoading}
+            {...register('password')}
+            onChange={(e) => {
+              register('password').onChange(e);
+              if (authError) clearError();
+            }}
           />
+          {errors.password && (
+            <span className="text-red-600 text-[12px] -mt-[12px]">
+              {errors.password.message}
+            </span>
+          )}
         </div>
 
         <div className="mt-[8px]">
-          <Button type="submit">Iniciar Sesión</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </Button>
         </div>
 
         <div className="w-full flex gap-[16px]">
