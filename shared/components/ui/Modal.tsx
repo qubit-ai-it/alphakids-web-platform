@@ -6,17 +6,7 @@ interface ModalProps {
 
 export function Modal({ children }: ModalProps) {
   return (
-    <div className="
-      fixed 
-      inset-0 
-      z-50 
-      flex 
-      items-center 
-      justify-center 
-      bg-slate-900/40 
-      backdrop-blur-sm 
-      p-4
-    ">
+    <div className="modal-auth-overlay">
       {children}
     </div>
   );
