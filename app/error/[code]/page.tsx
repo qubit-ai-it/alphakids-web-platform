@@ -2,7 +2,7 @@
 
 import React, { use } from 'react';
 import { ErrorTemplate } from '@/shared/components/ui/ErrorTemplate';
-import { notFound } from 'next/navigation';
+import { notFound, useSearchParams } from 'next/navigation';
 
 const ERROR_DATA: Record<string, { title: string; description: string }> = {
     "400": { title: "Solicitud Incorrecta", description: "Parece que hubo un error en la información enviada. Por favor, revisa e intenta nuevamente." },
@@ -11,6 +11,7 @@ const ERROR_DATA: Record<string, { title: string; description: string }> = {
     "405": { title: "Método No Permitido", description: "Esta acción no está permitida en este momento." },
     "408": { title: "Tiempo de Espera", description: "Tu conexión tardó demasiado en responder. Por favor, revisa tu internet y vuelve a intentarlo." },
     "429": { title: "Demasiadas Solicitudes", description: "¡Wow, más despacio! Has hecho demasiadas peticiones en muy poco tiempo. Espera un momento." },
+    "500": { title: "Error Interno del Servidor", description: "Algo salió mal en nuestros servidores. Estamos trabajando para solucionarlo." },
     "501": { title: "No Implementado", description: "Esta función aún está en construcción y no está disponible actualmente." },
     "502": { title: "Falla de Comunicación", description: "Tuvimos un problema de comunicación interna (Bad Gateway)." },
     "503": { title: "Servicio No Disponible", description: "Estamos realizando mantenimiento en la plataforma. Por favor, regresa pronto." },
@@ -23,17 +24,21 @@ interface PageProps {
 
 export default function CustomErrorPage({ params }: PageProps) {
     const { code } = use(params);
+    const searchParams = useSearchParams();
     const data = ERROR_DATA[code];
 
     if (!data) {
         notFound();
     }
 
+    const oauthMessage = searchParams.get('message');
+    const description = oauthMessage ?? data.description;
+
     return (
         <ErrorTemplate
             statusCode={code}
             title={data.title}
-            description={data.description}
+            description={description}
             homeLink={code === "401" ? "/login" : "/dashboard"}
         />
     );

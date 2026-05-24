@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { UserMenu } from './UserMenu';
-import { useMobileAction } from '@/shared/contexts/MobileActionContext';
 import logoAlphi from '@/app/assets/alphi.png';
 
 interface NavItem {
@@ -38,7 +37,6 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { action } = useMobileAction();
 
   const handleMobileClose = useCallback(() => {
     onMobileClose?.();
@@ -85,27 +83,6 @@ export function Sidebar({
           </span>
         </Link>
       </div>
-
-      {action && (
-        <div className={`px-[12px] pt-[16px] ${collapsed ? 'md:px-[8px] md:pt-[12px]' : ''}`}>
-          <button
-            type="button"
-            onClick={action.onClick}
-            disabled={action.disabled}
-            title={collapsed ? action.label : undefined}
-            className={`w-full flex items-center gap-[10px] rounded-[10px] bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-              collapsed ? 'md:justify-center md:p-[10px]' : 'px-[16px] py-[10px]'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px] shrink-0">
-              {action.icon ?? 'add'}
-            </span>
-            <span className={`text-[14px] whitespace-nowrap ${collapsed ? 'md:hidden' : ''}`}>
-              {action.label}
-            </span>
-          </button>
-        </div>
-      )}
 
       <nav className="py-[16px] px-[12px]">
         <ul className="flex flex-col gap-[4px]">

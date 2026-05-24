@@ -40,12 +40,12 @@ export function useMobileAction() {
 export function useSetMobileAction(action: MobileAction | null) {
   const { setAction } = useMobileAction();
   const actionRef = useRef(action);
+  actionRef.current = action;
 
   useEffect(() => {
-    actionRef.current = action;
-    setAction(action);
+    setAction(actionRef.current);
     return () => setAction(null);
-  });
+  }, []);
 
   return setAction;
 }

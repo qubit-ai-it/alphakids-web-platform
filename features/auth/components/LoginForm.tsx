@@ -140,6 +140,12 @@ export function LoginForm({ onClose }: LoginFormProps) {
               {errors.password.message}
             </span>
           )}
+
+          <div className="text-right -mt-[8px]">
+            <Link href="/forgot-password" className="text-[13px] text-primary-500 hover:text-primary-600 transition-colors font-medium">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </div>
 
         <div className="mt-[8px] w-full">
