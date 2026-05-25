@@ -19,7 +19,7 @@ export interface UpdateWordInput {
 
 export const wordsService = {
   async getAll(): Promise<Word[]> {
-    return api.get<Word[]>('/words');
+    return api.get<Word[]>('/words', { take: 9999 });
   },
 
   async getById(id: string): Promise<Word> {

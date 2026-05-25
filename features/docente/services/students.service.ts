@@ -24,7 +24,7 @@ export interface UpdateStudentInput {
 
 export const studentsService = {
   async getAll(): Promise<Student[]> {
-    return api.get<Student[]>('/students');
+    return api.get<Student[]>('/students', { take: 9999 });
   },
 
   async getById(id: string): Promise<Student> {

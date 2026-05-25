@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from './Button';
 
 interface Column<T> {
@@ -32,23 +32,6 @@ export function Table<T>({
   pageSize = 0,
 }: TableProps<T>) {
   const [page, setPage] = useState(0);
-
-  const usePagination = pageSize > 0;
-  const totalPages = usePagination ? Math.ceil(data.length / pageSize) : 1;
-  const totalPagesRef = useRef(totalPages);
-
-  useEffect(() => {
-    totalPagesRef.current = totalPages;
-  }, [totalPages]);
-
-  useEffect(() => {
-    if (page >= totalPagesRef.current && totalPagesRef.current > 0) {
-      setPage(Math.max(0, totalPagesRef.current - 1));
-    }
-  }, [totalPages]);
-
-  const handlePrev = () => setPage((p) => Math.max(0, p - 1));
-  const handleNext = () => setPage((p) => Math.min(totalPagesRef.current - 1, p + 1));
 
   if (isLoading) {
     return (
@@ -94,12 +77,19 @@ export function Table<T>({
     );
   }
 
+  const usePagination = pageSize > 0;
+  const totalPages = usePagination ? Math.ceil(data.length / pageSize) : 1;
   const safePage = Math.min(page, totalPages - 1);
   const pagedData = usePagination
     ? data.slice(safePage * pageSize, (safePage + 1) * pageSize)
     : data;
   const from = usePagination ? safePage * pageSize + 1 : 1;
   const to = usePagination ? Math.min((safePage + 1) * pageSize, data.length) : data.length;
+
+  const goToPage = (p: number) => {
+    const clamped = Math.max(0, Math.min(p, totalPages - 1));
+    setPage(clamped);
+  };
 
   return (
     <div className="card">
@@ -136,7 +126,7 @@ export function Table<T>({
             </span>
             <div className="flex items-center gap-[4px]">
               <button
-                onClick={handlePrev}
+                onClick={() => goToPage(safePage - 1)}
                 disabled={safePage === 0}
                 className="btn btn-2xs btn-ghost"
               >
@@ -146,7 +136,7 @@ export function Table<T>({
                 Array.from({ length: totalPages }, (_, i) => (
                   <button
                     key={i}
-                    onClick={() => setPage(i)}
+                    onClick={() => goToPage(i)}
                     className={`btn btn-2xs ${i === safePage ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     {i + 1}
@@ -155,7 +145,7 @@ export function Table<T>({
               ) : (
                 <>
                   <button
-                    onClick={() => setPage(0)}
+                    onClick={() => goToPage(0)}
                     className={`btn btn-2xs ${0 === safePage ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     1
@@ -169,7 +159,7 @@ export function Table<T>({
                     return (
                       <button
                         key={p}
-                        onClick={() => setPage(p)}
+                        onClick={() => goToPage(p)}
                         className={`btn btn-2xs ${p === safePage ? 'btn-primary' : 'btn-ghost'}`}
                       >
                         {p + 1}
@@ -180,7 +170,7 @@ export function Table<T>({
                     <span className="text-[13px] text-secondary-400 px-[4px]">&hellip;</span>
                   )}
                   <button
-                    onClick={() => setPage(totalPages - 1)}
+                    onClick={() => goToPage(totalPages - 1)}
                     className={`btn btn-2xs ${totalPages - 1 === safePage ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     {totalPages}
@@ -188,7 +178,7 @@ export function Table<T>({
                 </>
               )}
               <button
-                onClick={handleNext}
+                onClick={() => goToPage(safePage + 1)}
                 disabled={safePage === totalPages - 1}
                 className="btn btn-2xs btn-ghost"
               >

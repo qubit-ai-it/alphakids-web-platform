@@ -15,7 +15,7 @@ export interface UpdateGradeInput {
 
 export const gradesService = {
   async getAll(institutionId: string): Promise<Grade[]> {
-    return api.get<Grade[]>(`/institutions/${institutionId}/grades`);
+    return api.get<Grade[]>(`/institutions/${institutionId}/grades`, { take: 9999 });
   },
 
   async getById(institutionId: string, id: string): Promise<Grade> {

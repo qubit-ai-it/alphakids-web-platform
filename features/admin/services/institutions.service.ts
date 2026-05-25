@@ -23,7 +23,7 @@ export interface UpdateInstitutionInput {
 
 export const institutionsService = {
   async getAll(): Promise<Institution[]> {
-    return api.get<Institution[]>('/institutions');
+    return api.get<Institution[]>('/institutions', { take: 9999 });
   },
 
   async getById(id: string): Promise<Institution> {

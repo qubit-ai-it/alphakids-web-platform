@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
 import { authService } from '@/features/auth/services/auth.service';
+import { emailService } from '@/features/email/services/email.service';
+import { ResetPasswordEmail } from '@/features/email/templates/ResetPasswordEmail';
+import { renderEmail } from '@/shared/lib/render-email';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -18,6 +21,12 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     try {
       const res = await authService.forgotPassword(email);
+
+      if (res.resetLink) {
+        const html = await renderEmail(<ResetPasswordEmail resetLink={res.resetLink} />);
+        await emailService.send(email, 'Restablecé tu contraseña en AlphaKids', html);
+      }
+
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar el enlace');

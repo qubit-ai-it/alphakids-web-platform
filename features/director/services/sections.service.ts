@@ -15,6 +15,7 @@ export const sectionsService = {
   async getAll(institutionId: string, gradeId: string): Promise<Section[]> {
     return api.get<Section[]>(
       `/institutions/${institutionId}/grades/${gradeId}/sections`,
+      { take: 9999 },
     );
   },
 

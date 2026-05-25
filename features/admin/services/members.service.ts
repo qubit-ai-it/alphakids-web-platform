@@ -15,6 +15,7 @@ export const membersService = {
   async getAll(institutionId: string): Promise<InstitutionMember[]> {
     return api.get<InstitutionMember[]>(
       `/institutions/${institutionId}/members`,
+      { take: 9999 },
     );
   },
 

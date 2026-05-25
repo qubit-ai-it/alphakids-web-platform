@@ -16,7 +16,7 @@ export interface UpdateWordAssignmentInput {
 
 export const wordAssignmentsService = {
   async getAll(): Promise<WordAssignment[]> {
-    return api.get<WordAssignment[]>('/word-assignments');
+    return api.get<WordAssignment[]>('/word-assignments', { take: 9999 });
   },
 
   async getById(id: string): Promise<WordAssignment> {

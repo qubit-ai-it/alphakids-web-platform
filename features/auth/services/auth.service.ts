@@ -57,8 +57,8 @@ export const authService = {
     return api.get('/auth/parent');
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    return api.post<{ message: string }>('/auth/forgot-password', { email });
+  async forgotPassword(email: string): Promise<{ message: string; resetLink?: string }> {
+    return api.post<{ message: string; resetLink?: string }>('/auth/forgot-password', { email });
   },
 
   async resetPassword(token: string, password: string): Promise<{ message: string }> {
