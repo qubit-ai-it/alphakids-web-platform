@@ -10,8 +10,11 @@ import { UserForm } from '@/features/admin/components/UserForm';
 import { usersService } from '@/features/admin/services/users.service';
 import { institutionsService } from '@/features/admin/services/institutions.service';
 import { membersService } from '@/features/admin/services/members.service';
-import { useToast } from '@/shared/contexts/ToastContext';
+import { emailService } from '@/features/email/services/email.service';
+import { SetupPasswordEmail } from '@/features/email/templates/SetupPasswordEmail';
+import { renderEmail } from '@/shared/lib/render-email';
 import { getErrorMessage } from '@/shared/lib/errors';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { User, InstitutionMember } from '@/shared/lib/types';
 
@@ -133,7 +136,6 @@ export default function AdminUsuariosPage() {
 
   const handleCreateSubmit = async (data: {
     email: string;
-    password: string;
     name?: string;
     roles: string[];
     institutionId?: string;
@@ -142,7 +144,6 @@ export default function AdminUsuariosPage() {
     try {
       const newUser = await usersService.create({
         email: data.email,
-        password: data.password,
         name: data.name,
         roles: data.roles,
       });
@@ -155,6 +156,17 @@ export default function AdminUsuariosPage() {
             userId: newUser.id,
             roleId: role.role.id,
           });
+        }
+      }
+
+      if ((newUser as { setupLink?: string }).setupLink) {
+        const setupLink = (newUser as { setupLink: string }).setupLink;
+        const html = await renderEmail(<SetupPasswordEmail setupLink={setupLink} />);
+        try {
+          await emailService.send(data.email, 'Configurá tu contraseña en AlphaKids', html);
+          addToast('success', 'Email de bienvenida enviado');
+        } catch {
+          addToast('error', 'No se pudo enviar el email', 'El usuario fue creado pero el email no pudo enviarse.');
         }
       }
 

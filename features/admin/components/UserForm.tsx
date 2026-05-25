@@ -16,7 +16,6 @@ const needsInstitution = (roles: string[]) =>
 
 const userCreateSchema = z.object({
   email: z.string().min(1, 'El correo es requerido').email('Correo inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
   name: z.string().optional(),
   roles: z.array(z.string()).optional(),
 });
@@ -31,7 +30,6 @@ type UserEditData = z.infer<typeof userEditSchema>;
 
 interface CreateOutput {
   email: string;
-  password: string;
   name?: string;
   roles: string[];
   institutionId?: string;
@@ -115,7 +113,7 @@ function CreateUserForm({
     formState: { errors },
   } = useForm<UserCreateData>({
     resolver: zodResolver(userCreateSchema),
-    defaultValues: { email: '', password: '', name: '', roles: [] },
+    defaultValues: { email: '', name: '', roles: [] },
   });
 
   const selectedRoles = (watch('roles') ?? []) as string[];
@@ -221,14 +219,6 @@ function CreateUserForm({
               disabled={isLoading}
               error={errors.email?.message}
               {...register('email')}
-            />
-            <Input
-              label="Contraseña"
-              type="password"
-              placeholder="Mínimo 8 caracteres"
-              disabled={isLoading}
-              error={errors.password?.message}
-              {...register('password')}
             />
             <Input
               label="Nombre"

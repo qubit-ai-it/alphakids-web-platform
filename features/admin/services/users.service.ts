@@ -3,7 +3,7 @@ import type { User } from '@/shared/lib/types';
 
 export interface CreateUserInput {
   email: string;
-  password: string;
+  password?: string;
   name?: string;
   roles?: string[];
 }
@@ -24,8 +24,8 @@ export const usersService = {
     return api.get<User>(`/users/${id}`);
   },
 
-  async create(input: CreateUserInput): Promise<User> {
-    return api.post<User>('/users', input);
+  async create(input: CreateUserInput): Promise<User & { setupLink?: string }> {
+    return api.post<User & { setupLink?: string }>('/users', input);
   },
 
   async update(id: string, input: UpdateUserInput): Promise<User> {
