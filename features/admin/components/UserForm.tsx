@@ -7,21 +7,36 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { institutionsService } from '@/features/admin/services/institutions.service';
 import type { User, Institution, InstitutionMember } from '@/shared/lib/types';
 
 const availableRoles = ['admin', 'director', 'teacher', 'parent'] as const;
 const needsInstitution = (roles: string[]) =>
+  roles.includes('director') || roles.includes('teacher') || roles.includes('parent');
+const requiresInstitution = (roles: string[]) =>
   roles.includes('director') || roles.includes('teacher');
 
 const userCreateSchema = z.object({
-  email: z.string().min(1, 'El correo es requerido').email('Correo inválido'),
-  name: z.string().optional(),
+  email: z
+    .string()
+    .min(1, 'Falta el correo')
+    .email('Correo inválido')
+    .max(50, 'Máximo 50 caracteres'),
+  name: z
+    .string()
+    .max(50, 'Máximo 50 caracteres')
+    .optional()
+    .or(z.literal('')),
   roles: z.array(z.string()).optional(),
 });
 
 const userEditSchema = z.object({
-  name: z.string().optional(),
+  name: z
+    .string()
+    .max(50, 'Máximo 50 caracteres')
+    .optional()
+    .or(z.literal('')),
   roles: z.array(z.string()).optional(),
 });
 
@@ -39,16 +54,6 @@ interface EditOutput {
   name?: string;
   roles: string[];
   institutionId?: string;
-}
-
-interface UserFormProps {
-  onSubmitCreate?: (data: CreateOutput) => Promise<void>;
-  onSubmitEdit?: (data: EditOutput) => Promise<void>;
-  onCancel: () => void;
-  isLoading: boolean;
-  user?: User | null;
-  currentInstitution?: { id: string; name: string } | null;
-  currentMember?: InstitutionMember | null;
 }
 
 interface UserFormProps {
@@ -104,6 +109,7 @@ function CreateUserForm({
   const [step, setStep] = useState<1 | 2>(1);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [selectedInstitutionId, setSelectedInstitutionId] = useState('');
+  const { addToast } = useToast();
   const initialized = useRef(false);
 
   const {
@@ -125,6 +131,15 @@ function CreateUserForm({
     institutionsService.getAll().then(setInstitutions).catch(() => {});
   }, []);
 
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
   const goNext = () => {
     if (showStep2) {
       setStep(2);
@@ -136,6 +151,7 @@ function CreateUserForm({
   const onFinalSubmit = (data: UserCreateData) => {
     onSubmit({
       ...data,
+      name: data.name || undefined,
       roles: data.roles ?? [],
       institutionId: showStep2 ? selectedInstitutionId : undefined,
     });
@@ -185,8 +201,8 @@ function CreateUserForm({
             <Button
               type="button"
               size="sm"
-              disabled={isLoading || !selectedInstitutionId}
-              onClick={handleSubmit(onFinalSubmit)}
+              disabled={isLoading || (requiresInstitution(watch('roles') ?? []) && !selectedInstitutionId)}
+              onClick={handleSubmit(onFinalSubmit, onInvalid)}
             >
               {isLoading ? 'Guardando...' : 'Crear Usuario'}
             </Button>
@@ -210,7 +226,7 @@ function CreateUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(showStep2 ? goNext : onFinalSubmit)}>
+        <form onSubmit={handleSubmit(showStep2 ? goNext : onFinalSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Correo"
@@ -282,6 +298,7 @@ function EditUserForm({
   const [selectedInstitutionId, setSelectedInstitutionId] = useState(
     currentInstitution?.id ?? '',
   );
+  const { addToast } = useToast();
   const initialized = useRef(false);
 
   const {
@@ -303,6 +320,7 @@ function EditUserForm({
   const isDirectorOrTeacher = user?.roles.some((r) =>
     ['director', 'teacher'].includes(r.role.name),
   );
+  const isParentUser = user?.roles.some((r) => r.role.name === 'parent');
 
   useEffect(() => {
     if (initialized.current) return;
@@ -310,9 +328,18 @@ function EditUserForm({
     institutionsService.getAll().then(setInstitutions).catch(() => {});
   }, []);
 
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
   const onFinalSubmit = (data: UserEditData) => {
     onSubmit({
-      name: data.name,
+      name: data.name || undefined,
       roles: data.roles ?? [],
       institutionId: showInstitution ? selectedInstitutionId || undefined : undefined,
     });
@@ -332,7 +359,7 @@ function EditUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFinalSubmit)}>
+        <form onSubmit={handleSubmit(onFinalSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -362,7 +389,7 @@ function EditUserForm({
               </div>
             </div>
 
-            {(isDirectorOrTeacher || showInstitution) && (
+            {(isDirectorOrTeacher || isParentUser || showInstitution) && (
               <div className="w-full flex flex-col">
                 <label className="label">Institución</label>
                 {currentInstitution && (

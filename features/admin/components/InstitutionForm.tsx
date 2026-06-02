@@ -7,14 +7,29 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import type { Institution } from '@/shared/lib/types';
 
 const institutionSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(150, 'Máximo 150 caracteres'),
-  slug: z.string().min(1, 'El slug es requerido').max(150, 'Máximo 150 caracteres'),
-  ruc: z.string().min(1, 'El RUC es requerido').max(20, 'Máximo 20 caracteres'),
-  address: z.string().min(1, 'La dirección es requerida'),
-  phone: z.string().max(20, 'Máximo 20 caracteres').optional().or(z.literal('')),
+  name: z
+    .string()
+    .min(1, 'Falta el nombre')
+    .max(100, 'Máximo 100 caracteres'),
+  slug: z
+    .string()
+    .min(1, 'Falta el slug')
+    .max(50, 'Máximo 50 caracteres'),
+  ruc: z
+    .string()
+    .regex(/^\d{11}$/, 'El RUC debe tener exactamente 11 dígitos numéricos'),
+  address: z
+    .string()
+    .min(1, 'Falta la dirección')
+    .max(50, 'Máximo 50 caracteres'),
+  phone: z
+    .string()
+    .regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos')
+    .or(z.literal('')),
   isActive: z.boolean().optional(),
 });
 
@@ -30,6 +45,7 @@ interface InstitutionFormProps {
 export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: InstitutionFormProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const existingLogoUrl = initialData?.logoUrl ?? null;
   const isEditing = !!initialData;
@@ -64,7 +80,21 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
   };
 
   const handleFormSubmit = (data: InstitutionFormData) => {
+    const hasLogo = isEditing ? !!existingLogoUrl || !!logoFile : !!logoFile;
+    if (!hasLogo) {
+      addToast('error', 'Falta el logo');
+      return;
+    }
     onSubmit(data, logoFile ?? undefined);
+  };
+
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
   };
 
   const logoSrc = logoPreview ?? existingLogoUrl;
@@ -83,7 +113,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -115,14 +145,16 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
             />
             <Input
               label="Teléfono"
-              placeholder="+51 999 888 777"
+              placeholder="987654321"
               disabled={isLoading}
               error={errors.phone?.message}
               {...register('phone')}
             />
 
             <div className="w-full flex flex-col">
-              <label className="label-auth">Logo</label>
+              <label className="label-auth">
+                Logo <span className="text-red-500">*</span>
+              </label>
               <div className="flex items-center gap-[12px]">
                 {logoSrc ? (
                   <img
