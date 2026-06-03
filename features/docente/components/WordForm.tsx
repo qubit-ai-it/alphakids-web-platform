@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import type { Word } from '@/shared/lib/types';
 
 const difficultyOptions = [
@@ -18,7 +19,7 @@ const difficultyOptions = [
 ];
 
 const wordSchema = z.object({
-  text: z.string().min(1, 'El texto es requerido').max(100, 'Máximo 100 caracteres'),
+  text: z.string().min(1, 'Falta la palabra').max(15, 'Máximo 15 caracteres'),
   difficultyLabel: z.enum(['INICIAL', 'BASICO', 'INTERMEDIO', 'AVANZADO', 'EXPERTO'], {
     message: 'Selecciona una dificultad',
   }),
@@ -36,12 +37,14 @@ interface WordFormProps {
 
 export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps) {
   const isEdit = !!word;
+  const { addToast } = useToast();
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const existingImageUrl = word?.imageUrl ?? null;
+  const existingAudioUrl = word?.audioUrl ?? null;
 
   const {
     register,
@@ -73,7 +76,28 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
     setAudioFile(e.target.files?.[0] ?? null);
   };
 
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
   const handleFormSubmit = (data: WordFormData) => {
+    const hasImage = isEdit ? !!existingImageUrl || !!imageFile : !!imageFile;
+    const hasAudio = isEdit ? !!existingAudioUrl || !!audioFile : !!audioFile;
+
+    if (!hasImage) {
+      addToast('error', 'Falta la imagen');
+      return;
+    }
+    if (!hasAudio) {
+      addToast('error', 'Falta el audio');
+      return;
+    }
+
     onSubmit(data, imageFile ?? undefined, audioFile ?? undefined);
   };
 
@@ -95,11 +119,11 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <form onSubmit={handleSubmit(handleFormSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Palabra"
-              placeholder="Ej: manzana, perro, casa"
+              placeholder="Ej: sol, luna, pez"
               disabled={isLoading}
               error={errors.text?.message}
               {...register('text')}
@@ -124,7 +148,9 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
             </div>
 
             <div className="w-full flex flex-col">
-              <label className="label-auth">Imagen</label>
+              <label className="label-auth">
+                Imagen <span className="text-red-500">*</span>
+              </label>
               <div className="flex items-center gap-[12px]">
                 {imageSrc ? (
                   <img
@@ -151,7 +177,9 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
             </div>
 
             <div className="w-full flex flex-col">
-              <label className="label-auth">Audio</label>
+              <label className="label-auth">
+                Audio <span className="text-red-500">*</span>
+              </label>
               <div className="flex items-center gap-[12px]">
                 <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
@@ -166,6 +194,9 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
                   />
                   {audioFile && (
                     <p className="text-[12px] text-primary-600 mt-[6px]">{audioFile.name}</p>
+                  )}
+                  {existingAudioUrl && !audioFile && (
+                    <p className="text-[12px] text-primary-600 mt-[6px]">Audio existente</p>
                   )}
                   <p className="text-[11px] text-secondary-500 mt-[6px]">MP3, WAV o OGG.</p>
                 </div>
