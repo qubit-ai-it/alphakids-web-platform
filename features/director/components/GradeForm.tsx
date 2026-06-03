@@ -7,12 +7,24 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import type { Grade } from '@/shared/lib/types';
 
 const gradeSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(50, 'Máximo 50 caracteres'),
-  ageRangeMin: z.number().int().min(0, 'Mínimo 0').max(99, 'Máximo 99'),
-  ageRangeMax: z.number().int().min(0, 'Mínimo 0').max(99, 'Máximo 99'),
+  name: z.string().trim().min(1, 'Falta el nombre').max(50, 'Máximo 50 caracteres'),
+  ageRangeMin: z.coerce
+    .number({ message: 'Debe ser un número válido' })
+    .int({ message: 'Debe ser un número entero' })
+    .min(1, 'Mínimo 1')
+    .max(99, 'Máximo 99'),
+  ageRangeMax: z.coerce
+    .number({ message: 'Debe ser un número válido' })
+    .int({ message: 'Debe ser un número entero' })
+    .min(1, 'Mínimo 1')
+    .max(99, 'Máximo 99'),
+}).refine((data) => data.ageRangeMax >= data.ageRangeMin, {
+  message: 'La edad máxima debe ser mayor o igual a la edad mínima',
+  path: ['ageRangeMax'],
 });
 
 type GradeFormData = z.infer<typeof gradeSchema>;
@@ -26,6 +38,7 @@ interface GradeFormProps {
 
 export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormProps) {
   const isEdit = !!grade;
+  const { addToast } = useToast();
 
   const {
     register,
@@ -39,6 +52,15 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
       ageRangeMax: grade?.ageRangeMax ?? 5,
     },
   });
+
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
 
   return (
     <Modal>
@@ -56,7 +78,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -74,7 +96,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
                   placeholder="3"
                   disabled={isLoading}
                   error={errors.ageRangeMin?.message}
-                  {...register('ageRangeMin', { valueAsNumber: true })}
+                  {...register('ageRangeMin')}
                 />
               </div>
               <div className="flex-1">
@@ -84,7 +106,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
                   placeholder="5"
                   disabled={isLoading}
                   error={errors.ageRangeMax?.message}
-                  {...register('ageRangeMax', { valueAsNumber: true })}
+                  {...register('ageRangeMax')}
                 />
               </div>
             </div>

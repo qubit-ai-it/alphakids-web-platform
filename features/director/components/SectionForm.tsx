@@ -7,11 +7,16 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import type { Section } from '@/shared/lib/types';
 
 const sectionSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(10, 'Máximo 10 caracteres'),
-  capacity: z.number().int().min(1, 'Mínimo 1').max(999, 'Máximo 999'),
+  name: z.string().trim().min(1, 'Falta el nombre').max(10, 'Máximo 10 caracteres'),
+  capacity: z.coerce
+    .number({ message: 'Debe ser un número válido' })
+    .int({ message: 'Debe ser un número entero' })
+    .min(1, 'Mínimo 1')
+    .max(999, 'Máximo 999'),
 });
 
 type SectionFormData = z.infer<typeof sectionSchema>;
@@ -25,6 +30,7 @@ interface SectionFormProps {
 
 export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionFormProps) {
   const isEdit = !!section;
+  const { addToast } = useToast();
 
   const {
     register,
@@ -37,6 +43,15 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
       capacity: section?.capacity ?? 30,
     },
   });
+
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
 
   return (
     <Modal>
@@ -54,7 +69,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
@@ -69,7 +84,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
               placeholder="30"
               disabled={isLoading}
               error={errors.capacity?.message}
-              {...register('capacity', { valueAsNumber: true })}
+              {...register('capacity')}
             />
           </div>
 

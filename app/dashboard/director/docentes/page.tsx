@@ -17,6 +17,9 @@ import { getInstitutionId } from '@/shared/lib/jwt';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
+import { emailService } from '@/features/email/services/email.service';
+import { SetupPasswordEmail } from '@/features/email/templates/SetupPasswordEmail';
+import { renderEmail } from '@/shared/lib/render-email';
 import type { User, InstitutionMember, Section } from '@/shared/lib/types';
 
 interface TeacherRow extends User {
@@ -116,7 +119,6 @@ export default function DirectorDocentesPage() {
 
   const handleCreateSubmit = async (data: {
     email: string;
-    password: string;
     name?: string;
     institutionId: string;
     gradeId: string;
@@ -126,15 +128,27 @@ export default function DirectorDocentesPage() {
     try {
       const newUser = await usersService.create({
         email: data.email,
-        password: data.password,
         name: data.name,
         roles: ['teacher'],
       });
       const roleId = newUser.roles.find((r) => r.role.name === 'teacher')?.role.id;
       if (roleId) await membersService.create(data.institutionId, { userId: newUser.id, roleId });
       await sectionTeachersService.assign(data.institutionId, data.gradeId, data.sectionId, newUser.id);
+
+      if ((newUser as { setupLink?: string }).setupLink) {
+        const setupLink = (newUser as { setupLink: string }).setupLink;
+        const html = await renderEmail(<SetupPasswordEmail setupLink={setupLink} />);
+        try {
+          await emailService.send(data.email, 'Configurá tu contraseña en AlphaKids', html);
+          addToast('success', 'Docente creado', 'Se envió un email con el link para configurar la contraseña.');
+        } catch {
+          addToast('warning', 'Docente creado', 'No se pudo enviar el email de bienvenida.');
+        }
+      } else {
+        addToast('success', 'Docente creado');
+      }
+
       setShowForm(false);
-      addToast('success', 'Docente creado');
       fetchTeachers();
     } catch (err) {
       const { title, message } = getErrorMessage(err);

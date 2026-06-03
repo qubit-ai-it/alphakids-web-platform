@@ -7,22 +7,30 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { gradesService } from '@/features/director/services/grades.service';
 import { sectionsService } from '@/features/director/services/sections.service';
 import { getInstitutionId } from '@/shared/lib/jwt';
 import type { Grade, Section } from '@/shared/lib/types';
 
 const teacherSchema = z.object({
-  email: z.string().min(1, 'El correo es requerido').email('Correo inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
-  name: z.string().optional(),
+  email: z
+    .string()
+    .min(1, 'Falta el correo')
+    .email('Correo inválido')
+    .max(255, 'Máximo 255 caracteres'),
+  name: z.string()
+    .refine((val) => val.trim().length > 0 || val.length === 0, 'Falta el nombre')
+    .transform((val) => val.trim())
+    .pipe(z.string().max(150, 'Máximo 150 caracteres'))
+    .optional()
+    .or(z.literal('')),
 });
 
 type TeacherFormData = z.infer<typeof teacherSchema>;
 
 export interface TeacherCreateOutput {
   email: string;
-  password: string;
   name?: string;
   institutionId: string;
   sectionId: string;
@@ -41,6 +49,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
   const [grades, setGrades] = useState<Grade[]>([]);
   const [selectedGradeId, setSelectedGradeId] = useState('');
   const [sections, setSections] = useState<Section[]>([]);
+  const { addToast } = useToast();
   const initialized = useRef(false);
 
   const {
@@ -50,7 +59,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
     getValues,
   } = useForm<TeacherFormData>({
     resolver: zodResolver(teacherSchema),
-    defaultValues: { email: '', password: '', name: '' },
+    defaultValues: { email: '', name: '' },
   });
 
   useEffect(() => {
@@ -66,6 +75,15 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
 
   const [selectedSectionId, setSelectedSectionId] = useState('');
 
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
   const goNext = () => setStep(2);
   const goBack = () => setStep(1);
 
@@ -73,8 +91,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
     const data = getValues();
     onSubmit({
       email: data.email,
-      password: data.password,
-      name: data.name,
+      name: data.name || undefined,
       institutionId,
       gradeId: selectedGradeId,
       sectionId: selectedSectionId,
@@ -111,7 +128,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
           </div>
           <div className="modal-footer flex justify-between">
             <Button variant="secondary" size="sm" type="button" onClick={goBack} disabled={isLoading}>Atrás</Button>
-            <Button type="button" size="sm" disabled={isLoading || !selectedSectionId} onClick={onFinalSubmit}>
+            <Button type="button" size="sm" disabled={isLoading || !selectedSectionId} onClick={handleSubmit(onFinalSubmit, onInvalid)}>
               {isLoading ? 'Guardando...' : 'Crear Docente'}
             </Button>
           </div>
@@ -129,10 +146,9 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
             <span className="material-symbols-outlined text-[24px]">close</span>
           </button>
         </div>
-        <form onSubmit={handleSubmit(goNext)}>
+        <form onSubmit={handleSubmit(goNext, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input label="Correo" type="email" placeholder="docente@ejemplo.com" disabled={isLoading} error={errors.email?.message} {...register('email')} />
-            <Input label="Contraseña" type="password" placeholder="Mínimo 8 caracteres" disabled={isLoading} error={errors.password?.message} {...register('password')} />
             <Input label="Nombre" placeholder="Nombre del docente" disabled={isLoading} error={errors.name?.message} {...register('name')} />
           </div>
           <div className="modal-footer flex justify-end gap-[12px]">

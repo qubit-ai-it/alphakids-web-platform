@@ -14,11 +14,11 @@ const institutionSchema = z.object({
   name: z
     .string()
     .min(1, 'Falta el nombre')
-    .max(100, 'Máximo 100 caracteres'),
+    .max(150, 'Máximo 150 caracteres'),
   slug: z
     .string()
     .min(1, 'Falta el slug')
-    .max(50, 'Máximo 50 caracteres'),
+    .max(150, 'Máximo 150 caracteres'),
   ruc: z
     .string()
     .regex(/^\d{11}$/, 'El RUC debe tener exactamente 11 dígitos numéricos'),
