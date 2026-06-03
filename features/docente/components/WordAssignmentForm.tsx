@@ -7,16 +7,32 @@ import { z } from 'zod';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { wordsService } from '@/features/docente/services/words.service';
 import { studentsService } from '@/features/docente/services/students.service';
 import { getTeacherSectionIds } from '@/shared/lib/jwt';
 import type { WordAssignment, Word, Student } from '@/shared/lib/types';
 
+const oneYearFromNow = new Date();
+oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
 const assignmentSchema = z.object({
   wordId: z.string().min(1, 'Selecciona una palabra'),
   studentId: z.string().min(1, 'Selecciona un alumno'),
-  scheduledAt: z.string().optional().or(z.literal('')),
-  expiresAt: z.string().optional().or(z.literal('')),
+  scheduledAt: z.string()
+    .refine((val) => !val || new Date(val) <= oneYearFromNow, 'No puede programarse más allá de un año')
+    .optional()
+    .or(z.literal('')),
+  expiresAt: z.string()
+    .refine((val) => !val || new Date(val) <= oneYearFromNow, 'No puede programarse más allá de un año')
+    .optional()
+    .or(z.literal('')),
+}).refine((data) => {
+  if (!data.scheduledAt || !data.expiresAt) return true;
+  return new Date(data.expiresAt) >= new Date(data.scheduledAt);
+}, {
+  message: 'La fecha de expiración debe ser posterior a la programada',
+  path: ['expiresAt'],
 });
 
 type AssignmentFormData = z.infer<typeof assignmentSchema>;
@@ -38,6 +54,7 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
   const isEdit = !!assignment;
   const [words, setWords] = useState<Word[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const { addToast } = useToast();
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -64,6 +81,15 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
     },
   });
 
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
   const onFormSubmit = (data: AssignmentFormData) => {
     onSubmit({
       ...data,
@@ -82,7 +108,7 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFormSubmit)}>
+        <form onSubmit={handleSubmit(onFormSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             {!isEdit && (
               <>
