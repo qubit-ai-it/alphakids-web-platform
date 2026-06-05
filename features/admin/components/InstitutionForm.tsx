@@ -56,7 +56,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
     formState: { errors },
   } = useForm<InstitutionFormData>({
     resolver: zodResolver(institutionSchema),
-    mode: 'onTouched',
+    mode: 'onChange',
     defaultValues: {
       name: initialData?.name ?? '',
       slug: initialData?.slug ?? '',

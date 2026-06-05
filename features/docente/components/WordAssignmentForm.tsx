@@ -73,7 +73,7 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
     formState: { errors },
   } = useForm<AssignmentFormData>({
     resolver: zodResolver(assignmentSchema),
-    mode: 'onTouched',
+    mode: 'onChange',
     defaultValues: {
       wordId: assignment?.wordId ?? '',
       studentId: assignment?.studentId ?? '',

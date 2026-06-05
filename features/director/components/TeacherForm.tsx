@@ -59,7 +59,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
     getValues,
   } = useForm<TeacherFormData>({
     resolver: zodResolver(teacherSchema),
-    mode: 'onTouched',
+    mode: 'onChange',
     defaultValues: { email: '', name: '' },
   });
 

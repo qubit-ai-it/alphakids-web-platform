@@ -46,7 +46,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
     formState: { errors },
   } = useForm<GradeFormData>({
     resolver: zodResolver(gradeSchema),
-    mode: 'onTouched',
+    mode: 'onChange',
     defaultValues: {
       name: grade?.name ?? '',
       ageRangeMin: grade?.ageRangeMin ?? 3,
