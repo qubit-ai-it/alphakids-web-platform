@@ -64,16 +64,13 @@ export default function DashboardLayout({
       director: '/dashboard/director',
       teacher: '/dashboard/docente',
     };
-    const roleLandings: Record<string, string> = {
-      admin: '/dashboard/admin/instituciones',
-      director: '/dashboard/director/grados',
-      teacher: '/dashboard/docente/aula',
-    };
+
+    // Allow /dashboard root (page.tsx handles role redirect)
+    if (pathname === '/dashboard') return;
 
     const allowedPrefix = rolePrefixes[primaryRole];
-    const landing = roleLandings[primaryRole] || allowedPrefix;
-    if (allowedPrefix && !pathname.startsWith(allowedPrefix)) {
-      router.replace(landing);
+    if (allowedPrefix && !pathname.startsWith(allowedPrefix) && !pathname.startsWith('/forbidden')) {
+      router.replace('/forbidden');
     }
   }, [user, isLoading, pathname, router]);
 

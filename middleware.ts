@@ -27,6 +27,7 @@ const publicRoutes = [
   '/reset-password',
   '/setup-password',
   '/register',
+  '/forbidden',
   '/_next/static',
   '/favicon.ico',
 ];
@@ -100,9 +101,7 @@ export function middleware(request: NextRequest) {
 
   // Check if current path is allowed for this role
   if (!pathname.startsWith(allowedPrefix)) {
-    // Redirect to the user's landing page
-    const landing = roleLandingMap[primaryRole] || allowedPrefix;
-    return NextResponse.redirect(new URL(landing, request.url));
+    return NextResponse.redirect(new URL('/forbidden', request.url));
   }
 
   return NextResponse.next();
