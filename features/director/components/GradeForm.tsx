@@ -12,12 +12,12 @@ import type { Grade } from '@/shared/lib/types';
 
 const gradeSchema = z.object({
   name: z.string().trim().min(1, 'Falta el nombre').max(50, 'Máximo 50 caracteres'),
-  ageRangeMin: z.coerce
+  ageRangeMin: z
     .number({ message: 'Debe ser un número válido' })
     .int({ message: 'Debe ser un número entero' })
     .min(1, 'Mínimo 1')
     .max(99, 'Máximo 99'),
-  ageRangeMax: z.coerce
+  ageRangeMax: z
     .number({ message: 'Debe ser un número válido' })
     .int({ message: 'Debe ser un número entero' })
     .min(1, 'Mínimo 1')
@@ -96,7 +96,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
                   placeholder="3"
                   disabled={isLoading}
                   error={errors.ageRangeMin?.message}
-                  {...register('ageRangeMin')}
+                  {...register('ageRangeMin', { valueAsNumber: true })}
                 />
               </div>
               <div className="flex-1">
@@ -106,7 +106,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
                   placeholder="5"
                   disabled={isLoading}
                   error={errors.ageRangeMax?.message}
-                  {...register('ageRangeMax')}
+                  {...register('ageRangeMax', { valueAsNumber: true })}
                 />
               </div>
             </div>
