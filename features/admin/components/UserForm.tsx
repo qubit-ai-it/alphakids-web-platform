@@ -235,6 +235,7 @@ function CreateUserForm({
               placeholder="correo@ejemplo.com"
               disabled={isLoading}
               error={errors.email?.message}
+              maxLength={255}
               {...register('email')}
             />
             <Input
@@ -242,6 +243,7 @@ function CreateUserForm({
               placeholder="Nombre del usuario"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={150}
               {...register('name')}
             />
             <div className="w-full flex flex-col">
@@ -368,6 +370,7 @@ function EditUserForm({
               placeholder="Nombre del usuario"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={150}
               {...register('name')}
             />
             <div className="w-full flex flex-col">

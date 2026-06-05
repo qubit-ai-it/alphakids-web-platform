@@ -86,6 +86,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
               placeholder="Ej: Sala de 3, Pre-kínder, 1° Grado"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={50}
               {...register('name')}
             />
 

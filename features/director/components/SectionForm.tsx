@@ -77,6 +77,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
               placeholder="Ej: A, B, Matutina"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={10}
               {...register('name')}
             />
             <Input

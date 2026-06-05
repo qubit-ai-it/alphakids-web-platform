@@ -121,6 +121,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
               placeholder="Nombre de la institución"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={150}
               {...register('name')}
             />
             <Input
@@ -128,6 +129,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
               placeholder="identificador-unico"
               disabled={isLoading}
               error={errors.slug?.message}
+              maxLength={150}
               {...register('slug')}
             />
             <Input
@@ -135,6 +137,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
               placeholder="12345678901"
               disabled={isLoading}
               error={errors.ruc?.message}
+              maxLength={11}
               {...register('ruc')}
             />
             <Input
@@ -149,6 +152,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
               placeholder="987654321"
               disabled={isLoading}
               error={errors.phone?.message}
+              maxLength={9}
               {...register('phone')}
             />
 

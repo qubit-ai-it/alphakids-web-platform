@@ -127,6 +127,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
               placeholder="Ej: sol, luna, pez"
               disabled={isLoading}
               error={errors.text?.message}
+              maxLength={15}
               {...register('text')}
             />
 

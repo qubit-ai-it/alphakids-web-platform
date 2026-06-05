@@ -149,8 +149,8 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
         </div>
         <form onSubmit={handleSubmit(goNext, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
-            <Input label="Correo" type="email" placeholder="docente@ejemplo.com" disabled={isLoading} error={errors.email?.message} {...register('email')} />
-            <Input label="Nombre" placeholder="Nombre del docente" disabled={isLoading} error={errors.name?.message} {...register('name')} />
+            <Input label="Correo" type="email" placeholder="docente@ejemplo.com" disabled={isLoading} error={errors.email?.message} maxLength={255} {...register('email')} />
+            <Input label="Nombre" placeholder="Nombre del docente" disabled={isLoading} error={errors.name?.message} maxLength={150} {...register('name')} />
           </div>
           <div className="modal-footer flex justify-end gap-[12px]">
             <Button variant="secondary" size="sm" type="button" onClick={onCancel} disabled={isLoading}>Cancelar</Button>
