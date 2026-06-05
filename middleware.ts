@@ -27,7 +27,7 @@ const publicRoutes = [
   '/reset-password',
   '/setup-password',
   '/register',
-  '/forbidden',
+  '/error',
   '/_next/static',
   '/favicon.ico',
 ];

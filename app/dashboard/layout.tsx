@@ -69,8 +69,8 @@ export default function DashboardLayout({
     if (pathname === '/dashboard') return;
 
     const allowedPrefix = rolePrefixes[primaryRole];
-    if (allowedPrefix && !pathname.startsWith(allowedPrefix) && !pathname.startsWith('/forbidden')) {
-      router.replace('/forbidden');
+    if (allowedPrefix && !pathname.startsWith(allowedPrefix) && !pathname.startsWith('/error')) {
+      router.replace('/error/403');
     }
   }, [user, isLoading, pathname, router]);
 
