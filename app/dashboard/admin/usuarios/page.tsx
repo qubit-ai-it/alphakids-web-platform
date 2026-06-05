@@ -15,6 +15,7 @@ import { SetupPasswordEmail } from '@/features/email/templates/SetupPasswordEmai
 import { renderEmail } from '@/shared/lib/render-email';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useToast } from '@/shared/contexts/ToastContext';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { User, InstitutionMember } from '@/shared/lib/types';
 
@@ -24,6 +25,7 @@ interface UserRow extends User {
 }
 
 export default function AdminUsuariosPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,6 +260,22 @@ export default function AdminUsuariosPage() {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
+
+    // Cannot delete yourself
+    if (currentUser && deleteTarget.id === currentUser.id) {
+      addToast('error', 'No podés eliminarte a vos mismo');
+      setDeleteTarget(null);
+      return;
+    }
+
+    // Cannot delete another admin
+    const isTargetAdmin = deleteTarget.roles.some((r) => r.role.name === 'admin');
+    if (isTargetAdmin) {
+      addToast('error', 'No podés eliminar a otro administrador');
+      setDeleteTarget(null);
+      return;
+    }
+
     setDeleteLoading(true);
     try {
       await usersService.delete(deleteTarget.id);
@@ -343,7 +361,17 @@ export default function AdminUsuariosPage() {
           <button
             onClick={() => setDeleteTarget(u)}
             className="btn btn-2xs btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600"
-            title="Eliminar"
+            title={
+              currentUser && u.id === currentUser.id
+                ? 'No podés eliminarte'
+                : u.roles.some((r) => r.role.name === 'admin')
+                  ? 'No podés eliminar a otro administrador'
+                  : 'Eliminar'
+            }
+            disabled={
+              (currentUser && u.id === currentUser.id) ||
+              u.roles.some((r) => r.role.name === 'admin')
+            }
           >
             <span className="material-symbols-outlined text-[16px]">delete</span>
           </button>
