@@ -160,14 +160,6 @@ export function LoginForm({ onClose }: LoginFormProps) {
           <SocialButton provider="apple" />
         </div>
 
-        <div className="text-center mt-[8px]">
-          <p className="text-[14px] text-secondary-600">
-            ¿No tienes una cuenta?{' '}
-            <Link href="/register" className="text-primary-500 font-semibold hover:text-primary-600 transition-colors">
-              Regístrate aquí
-            </Link>
-          </p>
-        </div>
 
       </form>
     </div>
