@@ -57,3 +57,13 @@ export function getTeacherSectionIds(): string[] {
   const payload = decodeToken(token);
   return payload?.sectionAssignments?.map((a) => a.sectionId) ?? [];
 }
+
+export function setTokenCookie(token: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `access_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+}
+
+export function removeTokenCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax';
+}

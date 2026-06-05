@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getInstitutionName } from '@/shared/lib/jwt';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
@@ -44,6 +44,7 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -52,6 +53,23 @@ export default function DashboardLayout({
       router.replace('/');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Role-based route guard
+  React.useEffect(() => {
+    if (!user || isLoading) return;
+
+    const primaryRole = user.roles[0]?.role.name;
+    const rolePrefixes: Record<string, string> = {
+      admin: '/dashboard/admin',
+      director: '/dashboard/director',
+      teacher: '/dashboard/docente',
+    };
+
+    const allowedPrefix = rolePrefixes[primaryRole];
+    if (allowedPrefix && !pathname.startsWith(allowedPrefix)) {
+      router.replace(allowedPrefix);
+    }
+  }, [user, isLoading, pathname, router]);
 
   if (isLoading) {
     return (

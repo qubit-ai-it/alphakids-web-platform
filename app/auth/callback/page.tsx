@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { setTokenCookie } from '@/shared/lib/jwt';
 
 function CallbackHandler() {
   const router = useRouter();
@@ -20,6 +21,7 @@ function CallbackHandler() {
     }
 
     localStorage.setItem('access_token', token);
+    setTokenCookie(token);
     window.location.href = '/dashboard';
   }, [searchParams, router]);
 

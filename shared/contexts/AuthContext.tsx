@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import type { User } from '../lib/types';
 import { authService } from '@/features/auth/services/auth.service';
+import { setTokenCookie, removeTokenCookie } from '../lib/jwt';
 
 interface AuthState {
   user: User | null;
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(email, password);
       authService.setToken(response.access_token);
+      setTokenCookie(response.access_token);
       const profile = await authService.getProfile();
       setUser(profile);
     } catch (err) {
@@ -69,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await authService.register(email, password, name);
         authService.setToken(response.access_token);
+        setTokenCookie(response.access_token);
         const profile = await authService.getProfile();
         setUser(profile);
       } catch (err) {
@@ -82,9 +85,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await authService.logout();
-    setUser(null);
-    setError(null);
+    try {
+      await authService.logout();
+    } catch {
+      // Ignore server errors on logout
+    } finally {
+      removeTokenCookie();
+      setUser(null);
+      setError(null);
+    }
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
