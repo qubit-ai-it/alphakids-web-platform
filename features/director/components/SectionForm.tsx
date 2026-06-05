@@ -12,7 +12,7 @@ import type { Section } from '@/shared/lib/types';
 
 const sectionSchema = z.object({
   name: z.string().trim().min(1, 'Falta el nombre').max(10, 'Máximo 10 caracteres'),
-  capacity: z.coerce
+  capacity: z
     .number({ message: 'Debe ser un número válido' })
     .int({ message: 'Debe ser un número entero' })
     .min(1, 'Mínimo 1')
@@ -84,7 +84,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
               placeholder="30"
               disabled={isLoading}
               error={errors.capacity?.message}
-              {...register('capacity')}
+              {...register('capacity', { valueAsNumber: true })}
             />
           </div>
 
