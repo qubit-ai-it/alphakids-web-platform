@@ -64,10 +64,16 @@ export default function DashboardLayout({
       director: '/dashboard/director',
       teacher: '/dashboard/docente',
     };
+    const roleLandings: Record<string, string> = {
+      admin: '/dashboard/admin/instituciones',
+      director: '/dashboard/director/grados',
+      teacher: '/dashboard/docente/aula',
+    };
 
     const allowedPrefix = rolePrefixes[primaryRole];
+    const landing = roleLandings[primaryRole] || allowedPrefix;
     if (allowedPrefix && !pathname.startsWith(allowedPrefix)) {
-      router.replace(allowedPrefix);
+      router.replace(landing);
     }
   }, [user, isLoading, pathname, router]);
 

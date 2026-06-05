@@ -14,6 +14,12 @@ const roleRouteMap: Record<string, string> = {
   teacher: '/dashboard/docente',
 };
 
+const roleLandingMap: Record<string, string> = {
+  admin: '/dashboard/admin/instituciones',
+  director: '/dashboard/director/grados',
+  teacher: '/dashboard/docente/aula',
+};
+
 const publicRoutes = [
   '/',
   '/auth/callback',
@@ -84,14 +90,19 @@ export function middleware(request: NextRequest) {
 
   const allowedPrefix = roleRouteMap[primaryRole];
   if (!allowedPrefix) {
-    // Role with no mapped routes → redirect to landing
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Allow /dashboard itself (client-side page.tsx handles role redirect)
+  if (pathname === '/dashboard') {
+    return NextResponse.next();
   }
 
   // Check if current path is allowed for this role
   if (!pathname.startsWith(allowedPrefix)) {
-    // Redirect to the user's allowed area
-    return NextResponse.redirect(new URL(allowedPrefix, request.url));
+    // Redirect to the user's landing page
+    const landing = roleLandingMap[primaryRole] || allowedPrefix;
+    return NextResponse.redirect(new URL(landing, request.url));
   }
 
   return NextResponse.next();
