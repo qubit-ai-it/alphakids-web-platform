@@ -38,6 +38,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
     formState: { errors },
   } = useForm<SectionFormData>({
     resolver: zodResolver(sectionSchema),
+    mode: 'onChange',
     defaultValues: {
       name: section?.name ?? '',
       capacity: section?.capacity ?? 30,
@@ -76,6 +77,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
               placeholder="Ej: A, B, Matutina"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={10}
               {...register('name')}
             />
             <Input

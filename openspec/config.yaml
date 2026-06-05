@@ -1,0 +1,56 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Stack: Next.js 16.2.6 / React 19.2.4 / TypeScript 5.x (strict) / Tailwind 4.x
+  Architecture: Feature-based (features/ per domain) + shared UI (shared/components/)
+  Auth: JWT + AuthContext (localStorage) with role-based guards (proxy.ts)
+  Routing: App Router with route groups ((auth), (dashboard))
+  API: REST via api-client.ts → NestJS backend at localhost:3000 (separate repo)
+  Persistence: PostgreSQL (see docs/database-schema.md)
+  Forms: React Hook Form 7.x + Zod 4.x
+  CSS: Tailwind v4 with custom design tokens (primary/secondary palette in globals.css)
+  Font: Onest (Google Fonts)
+  PM: pnpm
+  Convention: "This is NOT the Next.js you know" — Next.js 16 has breaking changes; read node_modules/next/dist/docs/ before writing code.
+
+testing:
+  runner: none
+  strict_tdd: false
+  reason: No test runner configured in dependencies or scripts. TestSprite plans exist but no executable test framework.
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage: false
+  quality:
+    linter: eslint 9.x (eslint-config-next core-web-vitals + typescript)
+    type_checker: typescript 5.x (strict: true, noEmit)
+    formatter: none
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Scope must be constrained to a single feature domain
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Reference existing shared components when applicable
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns (feature-based, shared/ for common UI)
+    - Read Next.js 16 docs in node_modules/next/dist/docs/ before writing new code
+    - Respect AGENTS.md: this Next.js version has breaking changes
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "pnpm build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

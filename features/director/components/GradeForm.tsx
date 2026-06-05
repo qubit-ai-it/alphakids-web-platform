@@ -46,6 +46,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
     formState: { errors },
   } = useForm<GradeFormData>({
     resolver: zodResolver(gradeSchema),
+    mode: 'onChange',
     defaultValues: {
       name: grade?.name ?? '',
       ageRangeMin: grade?.ageRangeMin ?? 3,
@@ -85,6 +86,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
               placeholder="Ej: Sala de 3, Pre-kínder, 1° Grado"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={50}
               {...register('name')}
             />
 

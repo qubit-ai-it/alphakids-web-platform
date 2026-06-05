@@ -1,0 +1,265 @@
+{
+  "change": "landing-page",
+  "title": "Landing Page (campañas marketing)",
+  "review_workload_forecast": {
+    "estimated_changed_lines": "700–850",
+    "400_line_budget_risk": "High",
+    "chained_prs_recommended": "Yes",
+    "delivery_strategy": "ask-on-risk",
+    "decision_needed_before_apply": "Yes",
+    "chain_strategy": "pending",
+    "suggested_split": "PR 1 → Foundation + server components (tasks 1.1–1.2, 2.1–2.7, 3.2) | PR 2 → LeadForm client component (3.1) | PR 3 → app/page.tsx migration (4.1–4.2)",
+    "guard_lines": {
+      "decision_needed_before_apply": "Yes",
+      "chained_prs_recommended": "Yes",
+      "chain_strategy": "pending",
+      "budget_risk": "High"
+    }
+  },
+  "suggested_work_units": [
+    {
+      "unit": 1,
+      "goal": "Foundation + all server components + composition root",
+      "likely_pr": "PR 1",
+      "notes": "Base = main. Creates layout, content.ts, lead.schema.ts, 7 server components, and landing/page.tsx. Verify via pnpm dev + navigate to /landing."
+    },
+    {
+      "unit": 2,
+      "goal": "LeadForm client component",
+      "likely_pr": "PR 2",
+      "notes": "Base = main (independent). Client island with RHF + Zod + Formspree. Depends on content.ts and lead.schema.ts from PR 1."
+    },
+    {
+      "unit": 3,
+      "goal": "Migrate app/page.tsx + build verification",
+      "likely_pr": "PR 3",
+      "notes": "Base = main. Strip 'use client', hooks, modal. Run pnpm build to confirm no errors."
+    }
+  ],
+  "phases": [
+    {
+      "id": 1,
+      "name": "Foundation / Infrastructure",
+      "focus": "New types, interfaces, layout, data, config — things other tasks depend on",
+      "tasks": [
+        {
+          "id": "T1",
+          "title": "Create (marketing)/layout.tsx with SEO metadata and fonts",
+          "description": "Create route-group layout at `app/(marketing)/layout.tsx` as a server component with marketing OG metadata defaults, viewport config, and Onest font loading. No auth providers.",
+          "file_paths": ["app/(marketing)/layout.tsx"],
+          "dependencies": [],
+          "effort": "small",
+          "acceptance_criteria": [
+            "Layout renders as SSR without 'use client'",
+            "OG metadata, viewport, and Onest font load correctly",
+            "No auth providers or client wrappers included"
+          ]
+        },
+        {
+          "id": "T2",
+          "title": "Create features/landing/data/content.ts with all hardcoded copy",
+          "description": "Create data file exporting typed objects: hero content, game modes array (3 items), how-it-works steps (3), pricing plans (2), comparison rows (6 criteria × 3 competitors), FAQ items (6), footer brand/socials, and lead form labels. All copy in Spanish.",
+          "file_paths": ["features/landing/data/content.ts"],
+          "dependencies": [],
+          "effort": "medium",
+          "acceptance_criteria": [
+            "All 8 sections' data exported as typed consts/arrays",
+            "Pricing shows S/75 and S/35 correctly",
+            "Social links include Instagram, TikTok, WhatsApp, YouTube"
+          ]
+        },
+        {
+          "id": "T3",
+          "title": "Create features/landing/schema/lead.schema.ts with Zod validation",
+          "description": "Create Zod schema for lead form: nombre (string, min 2), email (valid email), teléfono (string, min 9 digits), edad_hijo (number, int, range 3–6). Export inferred type.",
+          "file_paths": ["features/landing/schema/lead.schema.ts"],
+          "dependencies": [],
+          "effort": "small",
+          "acceptance_criteria": [
+            "4 fields with correct validation rules",
+            "TypeScript inferred type available"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Server Components",
+      "focus": "7 SSR section components using hardcoded content from content.ts",
+      "tasks": [
+        {
+          "id": "T4",
+          "title": "Create Hero.tsx with gradient background and CTA scroll",
+          "description": "Server component at `features/landing/components/Hero.tsx`. Shows title 'Aprendizaje de palabras que cobra vida', phygital subtitle, CTA 'Quiero saber más' (scrolls to #lead-form). Background: `from-primary-500 via-primary-400 to-primary-600` gradient. Floating icons from Icon library.",
+          "file_paths": ["features/landing/components/Hero.tsx"],
+          "dependencies": ["T2"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "Title, subtitle, CTA render from content.ts",
+            "CTA scrolls to lead form on click",
+            "Gradient background renders correctly"
+          ]
+        },
+        {
+          "id": "T5",
+          "title": "Create GameModes.tsx with 3 cards",
+          "description": "Server component at `features/landing/components/GameModes.tsx`. Renders 3 cards (Cámara, OCR, Speech to Text) with icon, title, description. Responsive grid: single column mobile, 3 columns md+.",
+          "file_paths": ["features/landing/components/GameModes.tsx"],
+          "dependencies": ["T2"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "3 cards render with icon + title + description",
+            "Responsive: 1 col mobile, 3 col desktop",
+            "Data matches content.ts gameModes array"
+          ]
+        },
+        {
+          "id": "T6",
+          "title": "Create HowItWorks.tsx with 3 numbered steps",
+          "description": "Server component at `features/landing/components/HowItWorks.tsx`. Renders 3 sequential steps with numbering: 'Comprá el kit (S/75)', 'Descargá la app', 'Tu hijo aprende jugando'. Horizontal on desktop, vertical on mobile.",
+          "file_paths": ["features/landing/components/HowItWorks.tsx"],
+          "dependencies": ["T2"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "3 numbered steps render in order",
+            "Responsive layout: vertical mobile, horizontal md+",
+            "Step numbers are visible"
+          ]
+        },
+        {
+          "id": "T7",
+          "title": "Create Pricing.tsx with 2 plan cards",
+          "description": "Server component at `features/landing/components/Pricing.tsx`. Renders 'Plan Anual' (S/75) and 'Renovación' (S/35/año) cards with price, features list, CTA. Side-by-side on md+, stacked on mobile.",
+          "file_paths": ["features/landing/components/Pricing.tsx"],
+          "dependencies": ["T2"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "Both plan cards render with correct prices",
+            "Each shows features list",
+            "Side-by-side layout on md+"
+          ]
+        },
+        {
+          "id": "T8",
+          "title": "Create ComparisonTable.tsx with competitor grid",
+          "description": "Server component at `features/landing/components/ComparisonTable.tsx`. Renders comparison of AlphaKids vs Khan Academy Kids vs Duolingo ABC across 6 criteria. Card layout on mobile, <table> on md+.",
+          "file_paths": ["features/landing/components/ComparisonTable.tsx"],
+          "dependencies": ["T2"],
+          "effort": "medium",
+          "acceptance_criteria": [
+            "All 3 competitors and 6 criteria render",
+            "Responsive: cards mobile, table desktop",
+            "Checkmark/cross indicators for each cell"
+          ]
+        },
+        {
+          "id": "T9",
+          "title": "Create FAQ.tsx with accordion and JSON-LD schema",
+          "description": "Server component at `features/landing/components/FAQ.tsx`. Renders 6 expandable FAQ items (click to toggle). Injects `<script type=\"application/ld+json\">` with valid FAQPage schema (schema.org). Uses client toggle for expand/collapse on each item.",
+          "file_paths": ["features/landing/components/FAQ.tsx"],
+          "dependencies": ["T2"],
+          "effort": "medium",
+          "acceptance_criteria": [
+            "6 FAQ items render with expand/collapse toggle",
+            "JSON-LD <script> with FAQPage schema in HTML source",
+            "Toggle works without page reload"
+          ]
+        },
+        {
+          "id": "T10",
+          "title": "Create Footer.tsx with brand, social icons, copyright",
+          "description": "Server component at `features/landing/components/Footer.tsx`. Shows AlphaKids brand, 4 social icons (Instagram, TikTok, WhatsApp, YouTube) as links, and copyright text. Data from content.ts.",
+          "file_paths": ["features/landing/components/Footer.tsx"],
+          "dependencies": ["T2"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "Brand name renders",
+            "4 social icons with correct links",
+            "Copyright text renders"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Client Component + Composition",
+      "focus": "Interactive form and page assembly",
+      "tasks": [
+        {
+          "id": "T11",
+          "title": "Create LeadForm.tsx with RHF + Zod + Formspree POST",
+          "description": "Client component ('use client') at `features/landing/components/LeadForm.tsx`. Uses react-hook-form + zodResolver(leadSchema). POSTs to `https://formspree.io/f/{NEXT_PUBLIC_FORMSPREE_ID}`. On 2xx: show '¡Gracias! Te contactaremos pronto'. On error: show inline error. Fields: nombre, email, teléfono, edad_hijo.",
+          "file_paths": ["features/landing/components/LeadForm.tsx"],
+          "dependencies": ["T2", "T3"],
+          "effort": "medium",
+          "acceptance_criteria": [
+            "Happy path: valid data → POST to Formspree → success message",
+            "Validation: empty required fields → inline errors, no POST",
+            "Uses NEXT_PUBLIC_FORMSPREE_ID env var (placeholder if unset)",
+            "Scroll target id='lead-form' matches Hero CTA"
+          ]
+        },
+        {
+          "id": "T12",
+          "title": "Create landing/page.tsx as composition root",
+          "description": "Create `app/(marketing)/landing/page.tsx` as a server component that imports and composes all 8 sections in order: Hero, GameModes, HowItWorks, Pricing, ComparisonTable, FAQ, LeadForm, Footer. Each section separated by spacing sections.",
+          "file_paths": ["app/(marketing)/landing/page.tsx"],
+          "dependencies": ["T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "All 8 sections render in correct order at /landing",
+            "Server component (no 'use client')",
+            "Page SSR without JS required (except LeadForm)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Migration + Build Verification",
+      "focus": "Clean up app/page.tsx and ensure build passes",
+      "tasks": [
+        {
+          "id": "T13",
+          "title": "Add NEXT_PUBLIC_FORMSPREE_ID to .env.example",
+          "description": "Add `NEXT_PUBLIC_FORMSPREE_ID=your-formspree-id` to `.env.example` with a comment explaining it's required for the landing page lead form.",
+          "file_paths": [".env.example"],
+          "dependencies": [],
+          "effort": "small",
+          "acceptance_criteria": [
+            "NEXT_PUBLIC_FORMSPREE_ID present in .env.example"
+          ]
+        },
+        {
+          "id": "T14",
+          "title": "Migrate app/page.tsx to pure server component",
+          "description": "Strip `'use client'` directive, remove React hooks (useState, useEffect), remove LoginForm/Modal imports and references. Convert to pure server component rendering static content.",
+          "file_paths": ["app/page.tsx"],
+          "dependencies": [],
+          "effort": "small",
+          "acceptance_criteria": [
+            "No 'use client' directive",
+            "No React hooks",
+            "No LoginForm or Modal imports",
+            "Build compiles without client directive errors"
+          ]
+        },
+        {
+          "id": "T15",
+          "title": "Run pnpm build and fix any compilation errors",
+          "description": "Execute `pnpm build` and resolve any TypeScript or Next.js compilation errors introduced by the landing page changes.",
+          "file_paths": [],
+          "dependencies": ["T1", "T12", "T14"],
+          "effort": "small",
+          "acceptance_criteria": [
+            "pnpm build exits with 0",
+            "No TypeScript errors",
+            "No Next.js compilation warnings"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_tasks": 15,
+  "total_phases": 4
+}

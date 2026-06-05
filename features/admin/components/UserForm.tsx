@@ -119,6 +119,7 @@ function CreateUserForm({
     formState: { errors },
   } = useForm<UserCreateData>({
     resolver: zodResolver(userCreateSchema),
+    mode: 'onChange',
     defaultValues: { email: '', name: '', roles: [] },
   });
 
@@ -234,6 +235,7 @@ function CreateUserForm({
               placeholder="correo@ejemplo.com"
               disabled={isLoading}
               error={errors.email?.message}
+              maxLength={255}
               {...register('email')}
             />
             <Input
@@ -241,6 +243,7 @@ function CreateUserForm({
               placeholder="Nombre del usuario"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={150}
               {...register('name')}
             />
             <div className="w-full flex flex-col">
@@ -308,6 +311,7 @@ function EditUserForm({
     formState: { errors },
   } = useForm<UserEditData>({
     resolver: zodResolver(userEditSchema),
+    mode: 'onChange',
     defaultValues: {
       name: user?.name ?? '',
       roles: user?.roles.map((r) => r.role.name) ?? [],
@@ -366,6 +370,7 @@ function EditUserForm({
               placeholder="Nombre del usuario"
               disabled={isLoading}
               error={errors.name?.message}
+              maxLength={150}
               {...register('name')}
             />
             <div className="w-full flex flex-col">

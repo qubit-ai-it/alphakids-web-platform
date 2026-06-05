@@ -52,6 +52,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
     formState: { errors },
   } = useForm<WordFormData>({
     resolver: zodResolver(wordSchema),
+    mode: 'onChange',
     defaultValues: {
       text: word?.text ?? '',
       difficultyLabel: (word?.difficultyLabel as WordFormData['difficultyLabel']) ?? 'BASICO',
@@ -126,6 +127,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
               placeholder="Ej: sol, luna, pez"
               disabled={isLoading}
               error={errors.text?.message}
+              maxLength={15}
               {...register('text')}
             />
 
