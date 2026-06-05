@@ -22,7 +22,7 @@ const teacherSchema = z.object({
   name: z.string()
     .refine((val) => val.trim().length > 0 || val.length === 0, 'Falta el nombre')
     .transform((val) => val.trim())
-    .pipe(z.string().max(150, 'Máximo 150 caracteres'))
+    .pipe(z.string().regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\-]+$/, 'Solo letras, números y espacios').max(150, 'Máximo 150 caracteres'))
     .optional()
     .or(z.literal('')),
 });

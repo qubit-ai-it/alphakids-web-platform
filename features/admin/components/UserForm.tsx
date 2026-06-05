@@ -22,10 +22,12 @@ const userCreateSchema = z.object({
     .string()
     .min(1, 'Falta el correo')
     .email('Correo inválido')
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Correo inválido')
     .max(50, 'Máximo 50 caracteres'),
   name: z
     .string()
-    .max(50, 'Máximo 50 caracteres')
+    .max(150, 'Máximo 150 caracteres')
+    .regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\-]*$/, 'Solo letras, números y espacios')
     .optional()
     .or(z.literal('')),
   roles: z.array(z.string()).optional(),
@@ -34,7 +36,8 @@ const userCreateSchema = z.object({
 const userEditSchema = z.object({
   name: z
     .string()
-    .max(50, 'Máximo 50 caracteres')
+    .max(150, 'Máximo 150 caracteres')
+    .regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\-]*$/, 'Solo letras, números y espacios')
     .optional()
     .or(z.literal('')),
   roles: z.array(z.string()).optional(),

@@ -11,7 +11,7 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import type { Section } from '@/shared/lib/types';
 
 const sectionSchema = z.object({
-  name: z.string().trim().min(1, 'Falta el nombre').max(10, 'Máximo 10 caracteres'),
+  name: z.string().trim().min(1, 'Falta el nombre').max(10, 'Máximo 10 caracteres').regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\-]+$/, 'Solo letras, números y espacios'),
   capacity: z
     .number({ message: 'Debe ser un número válido' })
     .int({ message: 'Debe ser un número entero' })

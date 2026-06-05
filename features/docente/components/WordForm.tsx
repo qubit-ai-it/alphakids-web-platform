@@ -19,7 +19,7 @@ const difficultyOptions = [
 ];
 
 const wordSchema = z.object({
-  text: z.string().min(1, 'Falta la palabra').max(15, 'Máximo 15 caracteres'),
+  text: z.string().min(1, 'Falta la palabra').max(15, 'Máximo 15 caracteres').regex(/^[a-zA-ZáéíóúüñÑ0-9\s\-]+$/, 'Solo letras, números y espacios'),
   difficultyLabel: z.enum(['INICIAL', 'BASICO', 'INTERMEDIO', 'AVANZADO', 'EXPERTO'], {
     message: 'Selecciona una dificultad',
   }),

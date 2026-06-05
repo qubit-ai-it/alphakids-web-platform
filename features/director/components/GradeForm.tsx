@@ -11,7 +11,7 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import type { Grade } from '@/shared/lib/types';
 
 const gradeSchema = z.object({
-  name: z.string().trim().min(1, 'Falta el nombre').max(50, 'Máximo 50 caracteres'),
+  name: z.string().trim().min(1, 'Falta el nombre').max(50, 'Máximo 50 caracteres').regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\,\-\(\)]+$/, 'Solo letras, números y espacios'),
   ageRangeMin: z
     .number({ message: 'Debe ser un número válido' })
     .int({ message: 'Debe ser un número entero' })

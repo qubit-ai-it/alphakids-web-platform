@@ -14,18 +14,20 @@ const institutionSchema = z.object({
   name: z
     .string()
     .min(1, 'Falta el nombre')
-    .max(150, 'Máximo 150 caracteres'),
+    .max(150, 'Máximo 150 caracteres')
+    .regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\,\-\(\)\&\/]+$/, 'Solo letras, números y espacios'),
   slug: z
     .string()
     .min(1, 'Falta el slug')
-    .max(150, 'Máximo 150 caracteres'),
+    .max(150, 'Máximo 150 caracteres')
+    .regex(/^[a-zA-Z0-9\-_\.]+$/, 'Solo letras, números, guiones y puntos'),
   ruc: z
     .string()
     .regex(/^\d{11}$/, 'El RUC debe tener exactamente 11 dígitos numéricos'),
   address: z
     .string()
     .min(1, 'Falta la dirección')
-    .max(50, 'Máximo 50 caracteres'),
+    .regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\,\#\-\/\(\)]+$/, 'Solo letras, números y caracteres básicos'),
   phone: z
     .string()
     .regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos')
