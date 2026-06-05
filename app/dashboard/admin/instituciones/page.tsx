@@ -13,6 +13,7 @@ import { resizeImage } from '@/shared/lib/image';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
+import { useInvalidate, useRefresh } from '@/shared/contexts/QueryInvalidationContext';
 import type { Institution } from '@/shared/lib/types';
 
 export default function AdminInstitucionesPage() {
@@ -50,6 +51,8 @@ export default function AdminInstitucionesPage() {
       });
   }, []);
 
+  useRefresh('institutions', refetch);
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -83,6 +86,8 @@ export default function AdminInstitucionesPage() {
     setShowForm(true);
   };
 
+  const invalidate = useInvalidate();
+
   const handleFormSubmit = async (data: InstitutionFormData, logoFile?: File) => {
     setFormLoading(true);
     try {
@@ -115,7 +120,7 @@ export default function AdminInstitucionesPage() {
       setShowForm(false);
       setEditingInstitution(null);
       addToast('success', editingInstitution ? 'Institución actualizada' : 'Institución creada');
-      refetch();
+      invalidate('institutions');
     } catch (err) {
       const { title, message } = getErrorMessage(err);
       addToast('error', title, message);
@@ -131,7 +136,7 @@ export default function AdminInstitucionesPage() {
       await institutionsService.delete(deleteTarget.id);
       setDeleteTarget(null);
       addToast('success', 'Institución eliminada');
-      refetch();
+      invalidate('institutions');
     } catch (err) {
       const { title, message } = getErrorMessage(err);
       addToast('error', title, message);

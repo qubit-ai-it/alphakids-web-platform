@@ -3,6 +3,7 @@ import { Onest } from "next/font/google";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { ToastProvider } from "@/shared/contexts/ToastContext";
 import { ToastContainer } from "@/shared/components/ui/ToastContainer";
+import { QueryInvalidationProvider } from "@/shared/contexts/QueryInvalidationContext";
 import "./globals.css";
 
 const onest = Onest({
@@ -28,7 +29,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <QueryInvalidationProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </QueryInvalidationProvider>
           <ToastContainer />
         </ToastProvider>
       </body>
