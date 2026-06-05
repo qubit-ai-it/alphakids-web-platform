@@ -119,6 +119,7 @@ function CreateUserForm({
     formState: { errors },
   } = useForm<UserCreateData>({
     resolver: zodResolver(userCreateSchema),
+    mode: 'onTouched',
     defaultValues: { email: '', name: '', roles: [] },
   });
 
@@ -308,6 +309,7 @@ function EditUserForm({
     formState: { errors },
   } = useForm<UserEditData>({
     resolver: zodResolver(userEditSchema),
+    mode: 'onTouched',
     defaultValues: {
       name: user?.name ?? '',
       roles: user?.roles.map((r) => r.role.name) ?? [],

@@ -38,6 +38,7 @@ export function SectionForm({ onSubmit, onCancel, isLoading, section }: SectionF
     formState: { errors },
   } = useForm<SectionFormData>({
     resolver: zodResolver(sectionSchema),
+    mode: 'onTouched',
     defaultValues: {
       name: section?.name ?? '',
       capacity: section?.capacity ?? 30,

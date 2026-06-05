@@ -52,6 +52,7 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
     formState: { errors },
   } = useForm<WordFormData>({
     resolver: zodResolver(wordSchema),
+    mode: 'onTouched',
     defaultValues: {
       text: word?.text ?? '',
       difficultyLabel: (word?.difficultyLabel as WordFormData['difficultyLabel']) ?? 'BASICO',
