@@ -22,6 +22,8 @@ class ApiClient {
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
       ...(options.headers as Record<string, string>),
     };
 
@@ -32,6 +34,7 @@ class ApiClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers,
+      cache: 'no-store',
     });
 
     if (!response.ok) {
