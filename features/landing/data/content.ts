@@ -5,8 +5,8 @@
 // ─── Hero ───────────────────────────────────
 export const heroContent = {
   badge: 'Phygital — aprendizaje que une lo físico con lo digital',
-  title: 'Aprendizaje de palabras',
-  titleHighlight: 'que cobra vida',
+  title: 'Aprender empieza',
+  titleHighlight: 'por una letra',
   subtitle:
     'Un kit físico + app inteligente que usa cámara, OCR y voz para que los niños aprendan palabras jugando. Sin internet, sin pantallas todo el día.',
   cta: 'Quiero saber más',
@@ -200,6 +200,92 @@ export const faqItems: FaqItem[] = [
       'La app incluye un panel para padres donde podés ver el progreso: palabras aprendidas, tiempo de uso, modos más utilizados y logros alcanzados. Recibí reportes semanales por correo.',
   },
 ];
+
+// ─── Product Showcase ──────────────────────
+export const productShowcaseContent = {
+  mobile: {
+    images: [
+      {
+        src: '/assets/Pantalla_principal_Alphakids.jpeg',
+        alt: 'Pantalla principal de AlphaKids',
+        title: 'Pantalla principal',
+        desc: 'El niño elige entre los modos de juego: cámara, OCR y voz.',
+      },
+      {
+        src: '/assets/Dashboard_Ninio_Alphakids.jpeg',
+        alt: 'Dashboard del niño',
+        title: 'Panel del niño',
+        desc: 'Ve su progreso, logros y palabras aprendidas.',
+      },
+      {
+        src: '/assets/Dashboard_Tutor_Alphakids.jpeg',
+        alt: 'Dashboard del tutor',
+        title: 'Panel de padres',
+        desc: 'Métricas, tiempo de uso y reportes semanales.',
+      },
+      {
+        src: '/assets/Eleccion_mascota.jpeg',
+        alt: 'Elección de mascota',
+        title: 'Mascota virtual',
+        desc: 'El niño elige su mascota que lo acompaña en el aprendizaje.',
+      },
+      {
+        src: '/assets/Creacion_perfil_ninio.jpeg',
+        alt: 'Creación de perfil',
+        title: 'Perfil del niño',
+        desc: 'Nombre, edad y nivel para personalizar la experiencia.',
+      },
+      {
+        src: '/assets/Avatar_ninio.jpeg',
+        alt: 'Avatar del niño',
+        title: 'Personalización',
+        desc: 'Cada niño tiene su propio avatar y espacio personalizado.',
+      },
+    ],
+    features: [
+      'Funciona sin internet',
+      'Cámara para identificar objetos',
+      'OCR para leer tarjetas',
+      'Voz para pronunciar palabras',
+      'Panel de progreso para padres',
+      'Disponible en Android y iOS',
+    ],
+  },
+  web: {
+    features: [
+      {
+        icon: 'spellcheck',
+        title: 'Banco de Palabras',
+        desc: 'Gestioná vocabulario por niveles: desde inicial hasta experto, con imágenes y audio.',
+      },
+      {
+        icon: 'assignment_turned_in',
+        title: 'Asignaciones',
+        desc: 'Asignale palabras a cada alumno, seguí su progreso y monitoreá resultados.',
+      },
+      {
+        icon: 'child_care',
+        title: 'Gestión de Alumnos',
+        desc: 'Administrá grados, secciones y alumnos con datos completos y control de estado.',
+      },
+      {
+        icon: 'monitoring',
+        title: 'Métricas y Reportes',
+        desc: 'Visualizá el rendimiento por sección, alumno y período con gráficos claros.',
+      },
+      {
+        icon: 'group',
+        title: 'Múltiples Roles',
+        desc: 'Director, docente y apoderado: cada rol con su vista y permisos específicos.',
+      },
+      {
+        icon: 'apartment',
+        title: 'Multiinstitución',
+        desc: 'Una plataforma que soporta múltiples instituciones educativas de forma independiente.',
+      },
+    ],
+  },
+} as const;
 
 // ─── Footer ─────────────────────────────────
 export const footerContent = {
