@@ -147,7 +147,7 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
             <span className="material-symbols-outlined text-[24px]">close</span>
           </button>
         </div>
-        <form onSubmit={handleSubmit(goNext, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(goNext, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input label="Correo" type="email" placeholder="docente@ejemplo.com" disabled={isLoading} error={errors.email?.message} maxLength={255} {...register('email')} />
             <Input label="Nombre" placeholder="Nombre del docente" disabled={isLoading} error={errors.name?.message} maxLength={150} {...register('name')} />

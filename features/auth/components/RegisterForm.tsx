@@ -75,7 +75,7 @@ export function RegisterForm({ onClose }: RegisterFormProps) {
                 </p>
             </div>
 
-            <form className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit}>
+            <form noValidate className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-[12px]">
                     <Input
                         label="Nombre Completo"

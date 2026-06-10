@@ -107,7 +107,7 @@ export function LoginForm({ onClose }: LoginFormProps) {
         </div>
       )}
 
-      <form className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit(onSubmit)}>
+      <form noValidate className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-[12px]">
           <Input
             label="Correo"

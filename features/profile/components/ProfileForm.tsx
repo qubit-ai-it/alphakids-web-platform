@@ -178,7 +178,7 @@ export function ProfileForm({ onClose }: ProfileFormProps) {
                 </div>
             </div>
 
-            <form className="w-full flex flex-col gap-[24px]" onSubmit={handleSave}>
+            <form noValidate className="w-full flex flex-col gap-[24px]" onSubmit={handleSave}>
                 <div className="flex flex-col gap-[20px]">
                     <Input
                         label="Nombre Completo"

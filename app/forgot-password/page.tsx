@@ -1,38 +1,126 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
 import { authService } from '@/features/auth/services/auth.service';
 import { emailService } from '@/features/email/services/email.service';
 import { ResetPasswordEmail } from '@/features/email/templates/ResetPasswordEmail';
 import { renderEmail } from '@/shared/lib/render-email';
+import { canSendEmail, recordSend, getCooldownRemaining } from '@/shared/lib/email-rate-limit';
+
+const forgotSchema = z.object({
+  email: z.string().min(1, 'Falta el correo').email('Correo inválido'),
+});
+
+type ForgotFormData = z.infer<typeof forgotSchema>;
+
+const COOLDOWN_MSGS = [
+  'Podés reenviar en 1 minuto',
+  'Podés reenviar en 1 minuto',
+  'Podés reenviar en 2 minutos',
+  'Podés reenviar en 2 minutos',
+  'Podés reenviar en 6 minutos',
+  'Límite del día alcanzado. Volvé a intentar mañana.',
+];
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const { addToast } = useToast();
+  const [sent, setSent] = React.useState(false);
+  const [sentEmail, setSentEmail] = React.useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [emailValue, setEmailValue] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ForgotFormData>({
+    resolver: zodResolver(forgotSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '' },
+  });
+
+  const watchedEmail = watch('email');
+
+  useEffect(() => {
+    setEmailValue(watchedEmail ?? '');
+  }, [watchedEmail]);
+
+  useEffect(() => {
+    if (!emailValue) return;
+    const remaining = getCooldownRemaining(emailValue);
+    if (remaining <= 0) { setCooldown(0); return; }
+
+    setCooldown(remaining);
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next <= 0) clearInterval(interval);
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [emailValue, sent]);
+
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
+  const onSubmit = async (data: ForgotFormData) => {
+    const { allowed, remaining } = canSendEmail(data.email);
+    if (!allowed) {
+      setCooldown(remaining);
+      addToast('error', 'Esperá antes de reenviar');
+      return;
+    }
+
     try {
-      const res = await authService.forgotPassword(email);
-
+      const res = await authService.forgotPassword(data.email);
       if (res.resetLink) {
         const html = await renderEmail(<ResetPasswordEmail resetLink={res.resetLink} />);
-        await emailService.send(email, 'Restablecé tu contraseña en AlphaKids', html);
+        await emailService.send(data.email, 'Restablecé tu contraseña en AlphaKids', html);
       }
-
+      recordSend(data.email);
+      const newRemaining = getCooldownRemaining(data.email);
+      setCooldown(newRemaining);
+      setSentEmail(data.email);
       setSent(true);
+      addToast('success', 'Enlace enviado', 'Revisá tu correo para restablecer la contraseña.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al enviar el enlace');
-    } finally {
-      setIsLoading(false);
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     }
+  };
+
+  const formatCooldown = (s: number) => {
+    if (s >= 86400) return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
+    if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+    if (s >= 60) return `${Math.floor(s / 60)}m ${s % 60}s`;
+    return `${s}s`;
+  };
+
+  const getCooldownMsg = (email: string) => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('email_cooldown') : null;
+    if (!raw) return '';
+    try {
+      const state = JSON.parse(raw);
+      if (state.email !== email) return '';
+      const index = Math.min(state.sendCount - 1, COOLDOWN_MSGS.length - 1);
+      return COOLDOWN_MSGS[index];
+    } catch { return ''; }
   };
 
   return (
@@ -50,7 +138,7 @@ export default function ForgotPasswordPage() {
               Revisá tu correo
             </h1>
             <p className="text-[14px] text-secondary-600 text-center mb-[24px]">
-              Si el email <strong>{email}</strong> está registrado, recibirás un enlace para restablecer tu contraseña.
+              Si el email <strong>{sentEmail}</strong> está registrado, recibirás un enlace para restablecer tu contraseña.
             </p>
             <Link href="/login" className="btn btn-primary btn-md w-full text-center no-underline">
               Volver a Iniciar Sesión
@@ -65,25 +153,23 @@ export default function ForgotPasswordPage() {
               Ingresá tu correo y te enviaremos un enlace para restablecerla.
             </p>
 
-            {error && (
-              <div className="mb-[16px] p-[12px] bg-red-100 text-red-700 rounded-[8px] text-[14px]">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-[24px]">
+            <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-[24px]">
               <Input
                 label="Correo electrónico"
                 type="email"
                 placeholder="tu@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
+                error={errors.email?.message}
+                disabled={false}
+                {...register('email')}
               />
-              <Button type="submit" disabled={isLoading || !email}>
-                {isLoading ? 'Enviando...' : 'Enviar enlace'}
+              <Button type="submit" disabled={cooldown > 0 || !emailValue}>
+                {cooldown > 0 ? `Reenviar en ${formatCooldown(cooldown)}` : 'Enviar enlace'}
               </Button>
+              {cooldown > 0 && emailValue && (
+                <p className="text-[12px] text-secondary-500 text-center -mt-[16px]">
+                  {getCooldownMsg(emailValue)}
+                </p>
+              )}
             </form>
 
             <div className="text-center mt-[16px]">

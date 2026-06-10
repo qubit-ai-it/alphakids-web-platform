@@ -1,36 +1,83 @@
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Input } from '@/shared/components/ui/Input';
 import { PasswordInput } from '@/shared/components/auth/PasswordInput';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
 import { authService } from '@/features/auth/services/auth.service';
+
+const resetSchema = z.object({
+  password: z
+    .string()
+    .min(8, 'Mínimo 8 caracteres')
+    .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+    .regex(/[0-9]/, 'Debe contener al menos un número')
+    .regex(/[^a-zA-Z0-9]/, 'Debe contener al menos un símbolo (ej: _ . @ #)'),
+  confirm: z.string().min(1, 'Confirmá la contraseña'),
+}).refine((data) => data.password === data.confirm, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirm'],
+});
+
+type ResetFormData = z.infer<typeof resetSchema>;
+
+function getPasswordStrength(pw: string): { level: number; label: string; color: string; width: string } {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+
+  if (score <= 1) return { level: score, label: 'Débil', color: 'bg-red-500', width: '25%' };
+  if (score === 2) return { level: score, label: 'Media', color: 'bg-yellow-500', width: '50%' };
+  if (score === 3) return { level: score, label: 'Buena', color: 'bg-lime-500', width: '75%' };
+  return { level: score, label: 'Fuerte', color: 'bg-green-500', width: '100%' };
+}
 
 function ResetForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState('');
+  const { addToast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (password.length < 8) { setError('Mínimo 8 caracteres'); return; }
-    if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ResetFormData>({
+    resolver: zodResolver(resetSchema),
+    mode: 'onTouched',
+    defaultValues: { password: '', confirm: '' },
+  });
+
+  const password = watch('password') ?? '';
+  const strength = getPasswordStrength(password);
+
+  const onInvalid = () => {
+    addToast('error', 'El formulario se llenó incorrectamente');
+    for (const [, error] of Object.entries(errors)) {
+      if (error?.message && typeof error.message === 'string') {
+        addToast('error', error.message);
+      }
+    }
+  };
+
+  const onSubmit = async (data: ResetFormData) => {
     try {
-      await authService.resetPassword(token ?? '', password);
-      setDone(true);
+      await authService.resetPassword(token ?? '', data.password);
+      addToast('success', 'Contraseña restablecida');
+      setTimeout(() => router.push('/login'), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al restablecer');
-    } finally {
-      setIsLoading(false);
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
     }
   };
 
@@ -43,28 +90,22 @@ function ResetForm() {
     );
   }
 
-  if (done) {
-    return (
-      <div className="text-center">
-        <div className="w-[64px] h-[64px] bg-green-100 rounded-[16px] flex items-center justify-center mx-auto mb-[16px]">
-          <span className="material-symbols-outlined text-[32px] text-green-600">check_circle</span>
-        </div>
-        <h1 className="text-[24px] font-bold text-secondary-900 mb-[8px]">¡Contraseña restablecida!</h1>
-        <p className="text-[14px] text-secondary-600 mb-[24px]">Ya podés iniciar sesión con tu nueva contraseña.</p>
-        <Link href="/login" className="btn btn-primary btn-md w-full text-center no-underline">Iniciar Sesión</Link>
-      </div>
-    );
-  }
-
   return (
     <>
       <h1 className="text-[24px] font-bold text-secondary-900 text-center mb-[8px]">Nueva contraseña</h1>
       <p className="text-[14px] text-secondary-600 text-center mb-[24px]">Ingresá tu nueva contraseña para restablecer el acceso.</p>
-      {error && <div className="mb-[16px] p-[12px] bg-red-100 text-red-700 rounded-[8px] text-[14px]">{error}</div>}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[20px]">
-        <PasswordInput label="Nueva contraseña" placeholder="Mínimo 8 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
-        <Input label="Confirmar contraseña" type="password" placeholder="Repetí la contraseña" value={confirm} onChange={(e) => setConfirm(e.target.value)} disabled={isLoading} />
-        <Button type="submit" disabled={isLoading || !password || !confirm}>{isLoading ? 'Guardando...' : 'Restablecer'}</Button>
+      <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-[20px]">
+        <PasswordInput label="Nueva contraseña" placeholder="Mínimo 8 caracteres" error={errors.password?.message} {...register('password')} />
+        {password.length > 0 && (
+          <div className="-mt-[12px]">
+            <div className="w-full h-[6px] bg-secondary-200 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all duration-300 ${strength.color}`} style={{ width: strength.width }} />
+            </div>
+            <p className="text-[11px] text-secondary-500 mt-[4px]">Seguridad: {strength.label}</p>
+          </div>
+        )}
+        <Input label="Confirmar contraseña" type="password" placeholder="Repetí la contraseña" error={errors.confirm?.message} {...register('confirm')} />
+        <Button type="submit">Restablecer</Button>
       </form>
     </>
   );

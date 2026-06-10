@@ -67,7 +67,7 @@ export function StudentForm({ onSubmit, onCancel, isLoading, student }: StudentF
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form noValidate onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <div className="flex gap-[12px]">
               <div className="flex-1">

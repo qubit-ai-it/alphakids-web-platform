@@ -230,7 +230,7 @@ function CreateUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(showStep2 ? goNext : onFinalSubmit, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(showStep2 ? goNext : onFinalSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Correo"
@@ -366,7 +366,7 @@ function EditUserForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFinalSubmit, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(onFinalSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"

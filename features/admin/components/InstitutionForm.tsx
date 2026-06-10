@@ -116,7 +116,7 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(handleFormSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"

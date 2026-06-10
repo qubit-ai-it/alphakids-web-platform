@@ -5,9 +5,10 @@ import { Icon } from '../ui/Icon';
 
 interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  error?: string;
 }
 
-export function PasswordInput({ label, className = '', ...props }: PasswordInputProps) {
+export function PasswordInput({ label, error, className = '', ...props }: PasswordInputProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
@@ -16,7 +17,7 @@ export function PasswordInput({ label, className = '', ...props }: PasswordInput
         {label}
       </label>
 
-      <div className="input-auth-wrapper input-auth-wrapper-auth-password">
+      <div className={`input-auth-wrapper input-auth-wrapper-auth-password ${error ? 'border-red-500' : ''}`}>
         <input
           type={isVisible ? 'text' : 'password'}
           className={`input-auth-text input-auth-text-password ${className}`}
@@ -31,6 +32,7 @@ export function PasswordInput({ label, className = '', ...props }: PasswordInput
           <Icon name={isVisible ? 'visibility_off' : 'visibility'} className="text-[24px]" />
         </button>
       </div>
+      {error && <span className="error-message">{error}</span>}
     </div>
   );
 }

@@ -109,7 +109,7 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFormSubmit, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(onFormSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             {!isEdit && (
               <>

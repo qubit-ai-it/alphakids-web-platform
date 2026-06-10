@@ -79,7 +79,7 @@ export function GradeForm({ onSubmit, onCancel, isLoading, grade }: GradeFormPro
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
+        <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="modal-body flex flex-col gap-[16px]">
             <Input
               label="Nombre"
