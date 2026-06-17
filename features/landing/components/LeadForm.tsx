@@ -57,22 +57,24 @@ export default function LeadForm() {
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
         {/* ─── Counter Card ─── */}
         {count !== null && (
-          <div className="card py-[32px] md:py-[40px] px-[32px] flex items-center gap-[20px] md:gap-[32px]">
-            <div className="flex items-center gap-[12px] flex-shrink-0">
-              <span className="material-symbols-outlined text-[32px] md:text-[40px] text-primary-400">
+          <div className="card py-[32px] md:py-[40px] px-[32px]">
+            <div className="text-center mb-[16px]">
+              <span className="material-symbols-outlined text-[48px] md:text-[56px] text-primary-400">
                 group
               </span>
-              <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none">
+            </div>
+            <div className="flex items-center gap-[20px] md:gap-[32px]">
+              <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none flex-shrink-0">
                 {count}
               </span>
+              <p className="text-[15px] md:text-[18px] text-secondary-600 leading-tight">
+                <span className="font-semibold text-secondary-900">
+                  {count === 1 ? 'Persona' : 'Personas'}
+                </span>{' '}
+                interesadas en{' '}
+                <span className="font-semibold text-secondary-900">adquirir una demo</span>
+              </p>
             </div>
-            <p className="text-[15px] md:text-[18px] text-secondary-600 leading-tight">
-              <span className="font-semibold text-secondary-900">
-                {count === 1 ? 'Persona' : 'Personas'}
-              </span>{' '}
-              interesadas en{' '}
-              <span className="font-semibold text-secondary-900">adquirir una demo</span>
-            </p>
           </div>
         )}
 
