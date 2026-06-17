@@ -8,6 +8,7 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { Button } from '@/shared/components/ui/Button';
 import Hero from '@/features/landing/components/Hero';
+import DemoVideo from '@/features/landing/components/DemoVideo';
 import GameModes from '@/features/landing/components/GameModes';
 import ProductShowcase from '@/features/landing/components/ProductShowcase';
 import HowItWorks from '@/features/landing/components/HowItWorks';
@@ -75,6 +76,7 @@ export default function HomePage() {
       </nav>
 
       <Hero />
+      <DemoVideo />
       <GameModes />
       <ProductShowcase />
       <HowItWorks />

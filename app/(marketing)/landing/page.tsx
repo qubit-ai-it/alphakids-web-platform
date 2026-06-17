@@ -1,4 +1,5 @@
 import Hero from '@/features/landing/components/Hero';
+import DemoVideo from '@/features/landing/components/DemoVideo';
 import GameModes from '@/features/landing/components/GameModes';
 import HowItWorks from '@/features/landing/components/HowItWorks';
 import Pricing from '@/features/landing/components/Pricing';
@@ -11,6 +12,7 @@ export default function LandingPage() {
   return (
     <div className="w-full min-h-screen bg-white font-sans">
       <Hero />
+      <DemoVideo />
       <GameModes />
       <HowItWorks />
       <Pricing />
