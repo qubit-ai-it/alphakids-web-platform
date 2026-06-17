@@ -54,21 +54,24 @@ export default function LeadForm() {
 
   return (
     <section className="bg-secondary-50 py-[80px] md:py-[100px]">
-      <div className="mx-auto max-w-[600px] px-[24px]">
+      <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
+        {/* ─── Counter Card ─── */}
+        {count !== null && (
+          <div className="card text-center py-[40px]">
+            <p className="text-[14px] text-secondary-500 uppercase tracking-wider font-semibold mb-[8px]">
+              Personas interesadas en adquirir una demo
+            </p>
+            <span className="text-[64px] md:text-[80px] font-extrabold text-primary-500 leading-none">
+              {count}
+            </span>
+          </div>
+        )}
+
+        {/* ─── Form Card ─── */}
         <div className="card text-center py-[60px]">
           <span className="material-symbols-outlined mb-[16px] text-[56px] text-primary-500">
             auto_stories
           </span>
-
-          {/* Counter */}
-          {count !== null && (
-            <p className="text-[14px] text-secondary-500 mb-[24px]">
-              <span className="font-bold text-primary-600">{count}</span>{' '}
-              {count === 1
-                ? 'persona interesada en adquirir una demo'
-                : 'personas interesadas en adquirir una demo'}
-            </p>
-          )}
 
           <h2 className="mb-[8px] text-[28px] font-bold text-secondary-900 md:text-[32px]">
             ¿Querés probar una demo?
