@@ -6,7 +6,7 @@ export default function HowItWorks() {
       <div className="max-w-[900px] mx-auto px-[24px]">
         <div className="text-center mb-[60px]">
           <h2 className="text-[36px] md:text-[40px] font-extrabold text-secondary-900 mb-[16px]">
-            Empezá en 3 pasos
+            Empieza en 3 pasos
           </h2>
           <p className="text-[16px] md:text-[18px] text-secondary-600 max-w-[500px] mx-auto">
             Comprar, descargar y aprender. Así de simple.
