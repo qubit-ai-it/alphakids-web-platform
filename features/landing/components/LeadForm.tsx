@@ -67,7 +67,7 @@ export default function LeadForm() {
               <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none flex-shrink-0">
                 {count}
               </span>
-              <p className="text-[15px] md:text-[18px] text-secondary-600 leading-tight">
+              <p className="text-[20px] md:text-[24px] text-secondary-600 leading-tight">
                 <span className="font-semibold text-secondary-900">
                   {count === 1 ? 'Persona' : 'Personas'}
                 </span>{' '}
