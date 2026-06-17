@@ -57,16 +57,14 @@ export default function LeadForm() {
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
         {/* ─── Counter Card ─── */}
         {count !== null && (
-          <div className="card py-[32px] md:py-[40px] px-[32px] flex items-center gap-[24px] md:gap-[40px]">
-            <div className="flex items-center gap-[16px] md:gap-[24px] flex-shrink-0">
-              <span className="material-symbols-outlined text-[40px] md:text-[52px] text-primary-400">
-                group
-              </span>
-              <span className="text-[64px] md:text-[96px] font-extrabold text-primary-500 leading-none">
-                {count}
-              </span>
+          <div className="card text-center py-[40px] md:py-[48px]">
+            <span className="material-symbols-outlined text-[48px] md:text-[56px] text-primary-400 mb-[8px]">
+              group
+            </span>
+            <div className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none mb-[8px]">
+              {count}
             </div>
-            <p className="text-[15px] md:text-[18px] text-secondary-600 leading-tight">
+            <p className="text-[16px] md:text-[18px] text-secondary-600">
               <span className="font-semibold text-secondary-900">
                 {count === 1 ? 'Persona' : 'Personas'}
               </span>{' '}
