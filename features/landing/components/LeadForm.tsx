@@ -53,26 +53,26 @@ export default function LeadForm() {
   };
 
   return (
-    <section className="bg-secondary-50 py-[80px] md:py-[100px]">
+    <section id="lead-form" className="bg-secondary-50 py-[80px] md:py-[100px]">
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
         {/* ─── Counter Card ─── */}
         {count !== null && (
           <div className="card py-[32px] md:py-[40px] px-[32px]">
-            <div className="text-center mb-[16px]">
-              <span className="material-symbols-outlined text-[48px] md:text-[56px] text-primary-400">
-                group
-              </span>
-            </div>
-            <div className="flex items-center gap-[20px] md:gap-[32px]">
-              <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none flex-shrink-0">
-                {count}
-              </span>
-              <p className="text-[20px] md:text-[24px] text-secondary-600 leading-tight">
-                <span className="font-semibold text-secondary-900">
-                  {count === 1 ? 'Persona' : 'Personas'}
-                </span>{' '}
-                interesadas en{' '}
-                <span className="font-semibold text-secondary-900">adquirir una demo</span>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-[16px] mb-[12px]">
+                <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none">
+                  {count}
+                </span>
+                <span className="text-[32px] md:text-[40px] font-extrabold text-secondary-900">
+                  {count === 1 ? 'Familia' : 'Familias'}
+                </span>
+                <span className="material-symbols-outlined text-[40px] md:text-[48px] text-primary-400">
+                  group
+                </span>
+              </div>
+              <p className="text-[18px] md:text-[22px] text-secondary-600 font-medium">
+                que prefieren{' '}
+                <span className="font-semibold text-primary-500">AlphaKids</span>
               </p>
             </div>
           </div>
