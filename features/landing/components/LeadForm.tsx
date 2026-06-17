@@ -57,13 +57,22 @@ export default function LeadForm() {
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
         {/* ─── Counter Card ─── */}
         {count !== null && (
-          <div className="card text-center py-[40px]">
-            <p className="text-[14px] text-secondary-500 uppercase tracking-wider font-semibold mb-[8px]">
-              Personas interesadas en adquirir una demo
+          <div className="card py-[32px] md:py-[40px] px-[32px] flex items-center gap-[24px] md:gap-[40px]">
+            <div className="flex items-center gap-[16px] md:gap-[24px] flex-shrink-0">
+              <span className="material-symbols-outlined text-[40px] md:text-[52px] text-primary-400">
+                group
+              </span>
+              <span className="text-[64px] md:text-[96px] font-extrabold text-primary-500 leading-none">
+                {count}
+              </span>
+            </div>
+            <p className="text-[15px] md:text-[18px] text-secondary-600 leading-tight">
+              <span className="font-semibold text-secondary-900">
+                {count === 1 ? 'Persona' : 'Personas'}
+              </span>{' '}
+              interesadas en{' '}
+              <span className="font-semibold text-secondary-900">adquirir una demo</span>
             </p>
-            <span className="text-[64px] md:text-[80px] font-extrabold text-primary-500 leading-none">
-              {count}
-            </span>
           </div>
         )}
 
