@@ -2,11 +2,34 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+const ROLES = [
+  { value: 'padre', label: 'Padre / Madre de familia' },
+  { value: 'docente', label: 'Docente' },
+  { value: 'director', label: 'Director / Coordinador' },
+  { value: 'otro', label: 'Otro' },
+] as const;
+
+function detectSource(): string {
+  if (typeof window === 'undefined') return 'directo';
+  const url = new URL(window.location.href);
+  const ref = url.searchParams.get('ref');
+  if (ref) return ref;
+  const referrer = document.referrer || '';
+  if (referrer.includes('instagram')) return 'instagram';
+  if (referrer.includes('tiktok')) return 'tiktok';
+  if (referrer.includes('facebook')) return 'facebook';
+  if (referrer.includes('google')) return 'google';
+  return 'directo';
+}
+
 export default function LeadForm() {
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('padre');
   const [count, setCount] = useState<number | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [submittedEmail, setSubmittedEmail] = useState('');
+
+  const source = detectSource();
 
   /** Fetch lead count on mount */
   const fetchCount = useCallback(async () => {
@@ -15,7 +38,7 @@ export default function LeadForm() {
       const data = await res.json();
       setCount(data.count);
     } catch {
-      // silent — not critical
+      // silent
     }
   }, []);
 
@@ -34,7 +57,7 @@ export default function LeadForm() {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({ email: trimmed, role, source }),
       });
 
       if (!res.ok) {
@@ -106,34 +129,58 @@ export default function LeadForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-[12px] max-w-[480px] mx-auto">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@correo.com"
-              required
+          <form onSubmit={handleSubmit} className="max-w-[480px] mx-auto flex flex-col gap-[16px]">
+            {/* Role selector */}
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
               disabled={status === 'loading'}
-              className="flex-1 px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-secondary-400 disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={status === 'loading' || !email.trim()}
-              className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px] disabled:opacity-50"
+              className="w-full px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all disabled:opacity-50 appearance-none"
             >
-              {status === 'loading' ? (
-                <>
-                  <span className="spinner spinner-sm" />
-                  Enviando…
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[20px]">send</span>
-                  Enviar
-                </>
-              )}
-            </button>
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Email + submit row */}
+            <div className="flex flex-col sm:flex-row gap-[12px]">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@correo.com"
+                required
+                disabled={status === 'loading'}
+                className="flex-1 px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-secondary-400 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={status === 'loading' || !email.trim()}
+                className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px] disabled:opacity-50"
+              >
+                {status === 'loading' ? (
+                  <>
+                    <span className="spinner spinner-sm" />
+                    Enviando…
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[20px]">send</span>
+                    Enviar
+                  </>
+                )}
+              </button>
+            </div>
           </form>
+
+          {/* Source badge (informational, hidden on small) */}
+          {source !== 'directo' && (
+            <p className="mt-[16px] text-[12px] text-secondary-400 hidden sm:block">
+              Vía: {source}
+            </p>
+          )}
         </div>
       </div>
     </section>

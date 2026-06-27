@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import VisitTracker from '@/features/landing/components/VisitTracker';
 
 export const metadata: Metadata = {
   title: 'AlphaKids | Aprendizaje de palabras que cobra vida',
@@ -28,5 +29,10 @@ export default function MarketingLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>{children}</>;
+  return (
+    <>
+      <VisitTracker />
+      {children}
+    </>
+  );
 }
