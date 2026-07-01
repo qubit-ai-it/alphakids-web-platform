@@ -6,8 +6,12 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
 import { studentsService } from '@/features/docente/services/students.service';
+import { sectionsService } from '@/features/director/services/sections.service';
+import { gradesService } from '@/features/director/services/grades.service';
 import { getInstitutionId } from '@/shared/lib/jwt';
-import type { Student } from '@/shared/lib/types';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
+import type { Student, Grade, Section } from '@/shared/lib/types';
 
 export default function DirectorAlumnosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -15,9 +19,16 @@ export default function DirectorAlumnosPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [selectedGradeId, setSelectedGradeId] = useState('');
+  const [selectedSectionId, setSelectedSectionId] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
   const [filterText, setFilterText] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const initialized = useRef(false);
+  const { addToast } = useToast();
 
   const refetch = useCallback(() => {
     const id = getInstitutionId();
@@ -32,13 +43,63 @@ export default function DirectorAlumnosPage() {
     });
   }, []);
 
+  const fetchGrades = useCallback(() => {
+    const id = getInstitutionId();
+    if (!id) return;
+    gradesService.getAll(id).then(setGrades).catch(() => {});
+  }, []);
+
+  const fetchSections = useCallback((gradeId: string) => {
+    const id = getInstitutionId();
+    if (!id) return;
+    sectionsService.getAll(id, gradeId).then(setSections).catch(() => setSections([]));
+  }, []);
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     const id = getInstitutionId();
     setInstitutionId(id ?? null);
-    if (id) void Promise.resolve().then(() => refetch());
-  }, [refetch]);
+    if (id) {
+      void Promise.resolve().then(() => refetch());
+      fetchGrades();
+    }
+  }, [refetch, fetchGrades]);
+
+  const handleEdit = (s: Student) => {
+    setEditingStudent(s);
+    setSelectedGradeId('');
+    setSelectedSectionId('');
+    setSections([]);
+  };
+
+  const handleGradeChange = (gradeId: string) => {
+    setSelectedGradeId(gradeId);
+    setSelectedSectionId('');
+    setSections([]);
+    if (gradeId) fetchSections(gradeId);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingStudent) return;
+    setFormLoading(true);
+    try {
+      await studentsService.update(editingStudent.id, {
+        sectionId: selectedSectionId || undefined,
+      });
+      setEditingStudent(null);
+      setSelectedGradeId('');
+      setSelectedSectionId('');
+      setSections([]);
+      addToast('success', 'Sección actualizada');
+      refetch();
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   const filteredStudents = students.filter((s) => {
     const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
@@ -67,10 +128,15 @@ export default function DirectorAlumnosPage() {
     { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
     { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
     { key: 'status', header: 'Estado', className: 'w-[90px]', render: (s: Student) => <Badge variant={s.isActive ? 'success' : 'error'}>{s.isActive ? 'Activo' : 'Inactivo'}</Badge> },
-    { key: 'actions', header: 'Acciones', className: 'w-[70px]', render: (s: Student) => (
-      <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
-        <span className="material-symbols-outlined text-[16px]">visibility</span>
-      </button>
+    { key: 'actions', header: 'Acciones', className: 'w-[110px]', render: (s: Student) => (
+      <div className="flex items-center gap-[4px]">
+        <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
+          <span className="material-symbols-outlined text-[16px]">visibility</span>
+        </button>
+        <button onClick={() => handleEdit(s)} className="btn btn-2xs btn-ghost" title="Asignar sección">
+          <span className="material-symbols-outlined text-[16px]">edit</span>
+        </button>
+      </div>
     )},
   ];
 
@@ -188,6 +254,59 @@ export default function DirectorAlumnosPage() {
             </div>
             <div className="modal-footer">
               <Button variant="secondary" size="sm" onClick={() => setViewingStudent(null)}>Cerrar</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {editingStudent && (
+        <Modal>
+          <div className="modal-content max-w-[440px] w-full">
+            <div className="modal-header">
+              <h2 className="modal-title">Asignar Sección</h2>
+              <button type="button" onClick={() => { setEditingStudent(null); setSelectedGradeId(''); setSelectedSectionId(''); setSections([]); }} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
+                <span className="material-symbols-outlined text-[24px]">close</span>
+              </button>
+            </div>
+            <div className="modal-body flex flex-col gap-[16px]">
+              <p className="text-[14px] text-secondary-700">
+                Asignar sección a <strong>{editingStudent.firstName} {editingStudent.lastName}</strong>
+              </p>
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[13px] font-semibold text-secondary-700">Grado</label>
+                <select
+                  value={selectedGradeId}
+                  onChange={(e) => handleGradeChange(e.target.value)}
+                  className="input"
+                >
+                  <option value="">Seleccionar grado...</option>
+                  {grades.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name} ({g.ageRangeMin}-{g.ageRangeMax} años)</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[13px] font-semibold text-secondary-700">Sección</label>
+                <select
+                  value={selectedSectionId}
+                  onChange={(e) => setSelectedSectionId(e.target.value)}
+                  className="input"
+                  disabled={!selectedGradeId}
+                >
+                  <option value="">{selectedGradeId ? 'Seleccionar sección...' : 'Primero selecciona un grado'}</option>
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} (Cap. {s.capacity})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer flex justify-end gap-[12px]">
+              <Button variant="secondary" size="sm" onClick={() => { setEditingStudent(null); setSelectedGradeId(''); setSelectedSectionId(''); setSections([]); }} disabled={formLoading}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleEditSave} disabled={formLoading || !selectedSectionId}>
+                {formLoading ? 'Guardando...' : 'Guardar'}
+              </Button>
             </div>
           </div>
         </Modal>
