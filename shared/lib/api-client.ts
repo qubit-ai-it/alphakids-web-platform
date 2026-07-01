@@ -4,6 +4,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 class ApiClient {
   private baseUrl: string;
+  private isRefreshing = false;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -17,6 +19,7 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    _isRetry = false
   ): Promise<T> {
     const token = this.getToken();
 
@@ -38,6 +41,33 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401 && !_isRetry) {
+        const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+        if (refreshToken) {
+          if (!this.isRefreshing) {
+            this.isRefreshing = true;
+            this.refreshPromise = this.performRefresh(refreshToken).finally(() => {
+              this.isRefreshing = false;
+              this.refreshPromise = null;
+            });
+          }
+          
+          if (this.refreshPromise) {
+            const newToken = await this.refreshPromise;
+            if (newToken) {
+              return this.request<T>(endpoint, options, true);
+            }
+          }
+        }
+        
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          if (window.location.pathname !== '/login') {
+             window.location.href = '/login';
+          }
+        }
+      }
       let errorData: ApiError;
       try {
         errorData = await response.json();
@@ -54,6 +84,27 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  private async performRefresh(refreshToken: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+        }
+        return data.access_token;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   async get<T>(endpoint: string, params?: Record<string, string | number | undefined>): Promise<T> {
@@ -85,8 +136,11 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, { 
+      method: 'DELETE',
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 
   async upload<T>(endpoint: string, formData: FormData, method: 'POST' | 'PATCH' = 'POST'): Promise<T> {

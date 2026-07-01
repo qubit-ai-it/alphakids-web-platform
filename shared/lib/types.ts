@@ -110,10 +110,20 @@ export interface Institution {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
 }
 
 export interface RegisterResponse {
   access_token: string;
+  refresh_token: string;
+}
+
+export interface Session {
+  id: string;
+  deviceName: string;
+  ipAddress: string;
+  lastActiveAt: string;
+  createdAt: string;
 }
 
 export interface ApiError {

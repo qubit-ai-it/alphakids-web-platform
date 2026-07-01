@@ -19,6 +19,7 @@ interface SidebarProps {
   roleName: string;
   institutionName: string | null;
   onOpenProfile: () => void;
+  onOpenSessions: () => void;
   onLogout: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
@@ -30,6 +31,7 @@ export function Sidebar({
   roleName,
   institutionName,
   onOpenProfile,
+  onOpenSessions,
   onLogout,
   mobileOpen = false,
   onMobileClose,
@@ -165,6 +167,7 @@ export function Sidebar({
           isOpen={userMenuOpen}
           onClose={() => setUserMenuOpen(false)}
           onOpenProfile={onOpenProfile}
+          onOpenSessions={onOpenSessions}
           onLogout={onLogout}
         />
       </div>

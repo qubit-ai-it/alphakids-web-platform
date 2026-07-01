@@ -29,7 +29,7 @@ export default function DashboardPage() {
         router.replace('/dashboard/docente/aula');
         break;
       case 'parent':
-        router.replace('/dashboard');
+        router.replace('/dashboard/parent');
         break;
       default:
       router.replace('/');

@@ -8,6 +8,7 @@ import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { MobileHeader } from '@/shared/components/layout/MobileHeader';
 import { MobileActionProvider } from '@/shared/contexts/MobileActionContext';
 import { ProfileModal } from '@/features/profile/components/ProfileModal';
+import { SessionsModal } from '@/features/auth/components/SessionsModal';
 
 interface NavItem {
   href: string;
@@ -46,6 +47,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   React.useEffect(() => {
@@ -69,7 +71,12 @@ export default function DashboardLayout({
     if (pathname === '/dashboard') return;
 
     const allowedPrefix = rolePrefixes[primaryRole];
-    if (allowedPrefix && !pathname.startsWith(allowedPrefix) && !pathname.startsWith('/error')) {
+    if (
+      allowedPrefix &&
+      !pathname.startsWith(allowedPrefix) &&
+      !pathname.startsWith('/error') &&
+      !pathname.startsWith('/dashboard/perfil')
+    ) {
       router.replace('/error/403');
     }
   }, [user, isLoading, pathname, router]);
@@ -115,6 +122,7 @@ export default function DashboardLayout({
           roleName={roleName}
           institutionName={institutionName ?? null}
           onOpenProfile={() => setProfileOpen(true)}
+          onOpenSessions={() => setSessionsOpen(true)}
           onLogout={handleLogout}
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
@@ -125,6 +133,7 @@ export default function DashboardLayout({
         </main>
 
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        <SessionsModal isOpen={sessionsOpen} onClose={() => setSessionsOpen(false)} />
       </div>
     </MobileActionProvider>
   );

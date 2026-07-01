@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 interface UserMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenProfile: () => void;
+  onOpenSessions: () => void;
   onLogout: () => void;
 }
 
-export function UserMenu({ isOpen, onClose, onOpenProfile, onLogout }: UserMenuProps) {
+export function UserMenu({ isOpen, onClose, onOpenProfile, onOpenSessions, onLogout }: UserMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,6 +43,16 @@ export function UserMenu({ isOpen, onClose, onOpenProfile, onLogout }: UserMenuP
       >
         <span className="material-symbols-outlined text-[18px]">settings</span>
         Configuraci&oacute;n
+      </button>
+      <button
+        onClick={() => {
+          onOpenSessions();
+          onClose();
+        }}
+        className="user-menu-item"
+      >
+        <span className="material-symbols-outlined text-[18px]">devices</span>
+        Sesiones
       </button>
       <button
         onClick={() => {

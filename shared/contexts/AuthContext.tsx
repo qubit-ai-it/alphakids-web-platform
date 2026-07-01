@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(email, password);
       authService.setToken(response.access_token);
+      authService.setRefreshToken(response.refresh_token);
       setTokenCookie(response.access_token);
       const profile = await authService.getProfile();
       setUser(profile);
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await authService.register(email, password, name);
         authService.setToken(response.access_token);
+        authService.setRefreshToken(response.refresh_token);
         setTokenCookie(response.access_token);
         const profile = await authService.getProfile();
         setUser(profile);
