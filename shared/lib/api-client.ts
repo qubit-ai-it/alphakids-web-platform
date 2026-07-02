@@ -63,9 +63,7 @@ class ApiClient {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          if (window.location.pathname !== '/login') {
-             window.location.href = '/login';
-          }
+          window.location.href = '/?login=true&expired=true';
         }
       }
       let errorData: ApiError;

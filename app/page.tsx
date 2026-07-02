@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { Modal } from '@/shared/components/ui/Modal';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 import { RegisterParentForm } from '@/features/auth/components/RegisterParentForm';
@@ -22,6 +23,7 @@ import Footer from '@/features/landing/components/Footer';
 export default function HomePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
+  const { addToast } = useToast();
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -32,6 +34,23 @@ export default function HomePage() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('login') === 'true') {
+        setAuthModalMode('login');
+      }
+      if (url.searchParams.get('expired') === 'true') {
+        addToast('error', 'Sesión Expirada', 'Tu sesión ha caducado o ha sido revocada. Por favor, iniciá sesión nuevamente.');
+      }
+      if (url.searchParams.has('login') || url.searchParams.has('expired')) {
+        url.searchParams.delete('login');
+        url.searchParams.delete('expired');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [addToast]);
 
   if (isLoading) {
     return (
