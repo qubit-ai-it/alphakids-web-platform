@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Table } from '@/shared/components/ui/Table';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -29,6 +30,25 @@ export default function DirectorAlumnosPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const initialized = useRef(false);
   const { addToast } = useToast();
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const tabParam = searchParams?.get('tab');
+  const verificationParam = searchParams?.get('verification');
+  
+  const initialVerification = verificationParam 
+    ? verificationParam 
+    : tabParam === 'pendientes' 
+      ? 'PENDING' 
+      : '';
+      
+  const [filterVerification, setFilterVerification] = useState<string>(initialVerification);
+
+  useEffect(() => {
+    if (verificationParam) setFilterVerification(verificationParam);
+    else if (tabParam === 'pendientes') setFilterVerification('PENDING');
+  }, [tabParam, verificationParam]);
 
   const refetch = useCallback(() => {
     const id = getInstitutionId();
@@ -101,12 +121,28 @@ export default function DirectorAlumnosPage() {
     }
   };
 
-  const filteredStudents = students.filter((s) => {
-    const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
-    const matchesText = !filterText || fullName.includes(filterText.toLowerCase());
-    const matchesStatus = !filterStatus || (filterStatus === 'active' ? s.isActive : !s.isActive);
-    return matchesText && matchesStatus;
-  });
+  const handleStatusChange = async (student: Student, newStatus: 'VERIFIED' | 'REJECTED') => {
+    try {
+      await studentsService.update(student.id, { verificationStatus: newStatus });
+      addToast('success', 'Éxito', `Estudiante ${newStatus === 'VERIFIED' ? 'aprobado' : 'rechazado'}`);
+      refetch();
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    }
+  };
+
+  const filteredStudents = useMemo(() => {
+    return students
+      .filter((s) => {
+        const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+        const matchesText = !filterText || fullName.includes(filterText.toLowerCase());
+        const matchesStatus = !filterStatus || (filterStatus === 'active' ? s.isActive : !s.isActive);
+        const matchesVerification = !filterVerification || s.verificationStatus === filterVerification;
+        return matchesText && matchesStatus && matchesVerification;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [students, filterText, filterStatus, filterVerification]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('es-PE', {
@@ -128,14 +164,26 @@ export default function DirectorAlumnosPage() {
     { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
     { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
     { key: 'status', header: 'Estado', className: 'w-[90px]', render: (s: Student) => <Badge variant={s.isActive ? 'success' : 'error'}>{s.isActive ? 'Activo' : 'Inactivo'}</Badge> },
-    { key: 'actions', header: 'Acciones', className: 'w-[110px]', render: (s: Student) => (
+    { key: 'actions', header: 'Acciones', className: 'w-[140px]', render: (s: Student) => (
       <div className="flex items-center gap-[4px]">
         <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
           <span className="material-symbols-outlined text-[16px]">visibility</span>
         </button>
-        <button onClick={() => handleEdit(s)} className="btn btn-2xs btn-ghost" title="Asignar sección">
-          <span className="material-symbols-outlined text-[16px]">edit</span>
-        </button>
+        {(!s.verificationStatus || s.verificationStatus === 'VERIFIED') && (
+          <button onClick={() => handleEdit(s)} className="btn btn-2xs btn-ghost" title="Asignar sección">
+            <span className="material-symbols-outlined text-[16px]">edit</span>
+          </button>
+        )}
+        {s.verificationStatus === 'PENDING' && (
+          <>
+            <button onClick={() => handleStatusChange(s, 'VERIFIED')} className="btn btn-2xs btn-ghost text-success-600 hover:bg-success-50" title="Aprobar">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            </button>
+            <button onClick={() => handleStatusChange(s, 'REJECTED')} className="btn btn-2xs btn-ghost text-error-600 hover:bg-error-50" title="Rechazar">
+              <span className="material-symbols-outlined text-[16px]">cancel</span>
+            </button>
+          </>
+        )}
       </div>
     )},
   ];
@@ -153,7 +201,7 @@ export default function DirectorAlumnosPage() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Alumnos</h1>
-        <p className="page-subtitle">Visualización de alumnos por grado y sección</p>
+        <p className="page-subtitle">Visualización y gestión de alumnos</p>
       </div>
 
       <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
@@ -166,30 +214,44 @@ export default function DirectorAlumnosPage() {
             placeholder="Buscar por nombre..."
             className="input"
           />
-          {filterText && (
-            <button onClick={() => setFilterText('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
-              <span className="material-symbols-outlined text-[16px]">close</span>
-            </button>
-          )}
         </div>
         <div className="flex items-center gap-[8px]">
-          <label className="text-[13px] font-medium text-secondary-600">Estado:</label>
+          <label className="text-[13px] font-medium text-secondary-600">Estado de Cuenta:</label>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input max-w-[150px]">
             <option value="">Todos</option>
             <option value="active">Activo</option>
             <option value="inactive">Inactivo</option>
           </select>
-          {filterStatus && (
-            <button onClick={() => setFilterStatus('')} className="btn btn-2xs btn-ghost text-secondary-400" title="Limpiar filtro">
-              <span className="material-symbols-outlined text-[16px]">close</span>
-            </button>
+        </div>
+        <div className="flex items-center gap-[8px]">
+          <label className="text-[13px] font-medium text-secondary-600">Solicitud:</label>
+          <select value={filterVerification} onChange={(e) => { setFilterVerification(e.target.value); router.replace('/dashboard/director/alumnos'); }} className="input max-w-[150px]">
+            <option value="">Todas</option>
+            <option value="VERIFIED">Aprobados</option>
+            <option value="PENDING">Pendientes</option>
+            <option value="REJECTED">Rechazados</option>
+          </select>
+        </div>
+
+
+        <div className="ml-auto flex items-center">
+          {(filterText || filterStatus || filterVerification) && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setFilterText('');
+                setFilterStatus('');
+                setFilterVerification('');
+                router.replace('/dashboard/director/alumnos');
+              }}
+              className="gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">filter_alt_off</span>
+              Limpiar Filtros
+            </Button>
           )}
         </div>
-        {(filterText || filterStatus) && (
-          <span className="text-[13px] text-secondary-500">
-            {filteredStudents.length} resultado{filteredStudents.length !== 1 ? 's' : ''}
-          </span>
-        )}
       </div>
 
       <Table<Student>

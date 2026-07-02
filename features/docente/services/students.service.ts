@@ -20,6 +20,7 @@ export interface UpdateStudentInput {
   institutionId?: string;
   sectionId?: string;
   isActive?: boolean;
+  verificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED';
 }
 
 export const studentsService = {

@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { UserMenu } from './UserMenu';
 import logoAlphi from '@/app/assets/alphi.png';
+import { useNotifications } from '@/shared/hooks/useNotifications';
+import { NotificationInbox } from '@/shared/components/notifications/NotificationInbox';
+import { Modal } from '@/shared/components/ui/Modal';
 
 interface NavItem {
   href: string;
@@ -38,7 +41,10 @@ export function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const pathname = usePathname();
+  
+  const { unreadCount } = useNotifications();
 
   const handleMobileClose = useCallback(() => {
     onMobileClose?.();
@@ -120,6 +126,31 @@ export function Sidebar({
       </nav>
 
       <div className="flex-1" />
+
+      <div className="px-[16px] pb-[16px] flex flex-col gap-[8px]">
+        {/* Notifications Trigger */}
+        <button
+          onClick={() => setInboxOpen(true)}
+          className={`flex items-center gap-[12px] p-[8px] rounded-[8px] text-secondary-700 hover:bg-secondary-100 hover:text-secondary-900 transition-colors ${
+            collapsed ? 'md:justify-center' : ''
+          }`}
+          title="Notificaciones"
+        >
+          <div className="relative shrink-0 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[26px] text-[#2563eb]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              notifications
+            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ef4444] rounded-full flex items-center justify-center text-white text-[11px] font-bold border-2 border-white shadow-sm">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className={`text-[14px] font-medium whitespace-nowrap ${collapsed ? 'md:hidden' : ''}`}>
+            Notificaciones
+          </span>
+        </button>
+      </div>
 
       <div className="relative p-[16px] border-t border-secondary-200">
         <button
@@ -203,6 +234,10 @@ export function Sidebar({
         </button>
         {sidebarContent}
       </aside>
+
+      {inboxOpen && (
+        <NotificationInbox onClose={() => setInboxOpen(false)} />
+      )}
     </>
   );
 }

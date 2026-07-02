@@ -37,6 +37,7 @@ export interface InstitutionMember {
 }
 
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface Student {
   id: string;
@@ -48,6 +49,7 @@ export interface Student {
   institutionId: string | null;
   sectionId: string | null;
   isActive: boolean;
+  verificationStatus: VerificationStatus;
   registeredById: string;
   registeredBy?: {
     id: string;
@@ -187,4 +189,22 @@ export interface Word {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  type: string;
+  isRead: boolean;
+  referenceId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationsResponse {
+  items: Notification[];
+  total: number;
+  unreadCount: number;
 }
