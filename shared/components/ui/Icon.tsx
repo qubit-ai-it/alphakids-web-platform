@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type IconName = 'close' | 'visibility' | 'visibility_off' | 'google' | 'apple' | 'person' | 'account_circle' | 'badge' | 'logout' | 'home' | 'refresh' | 'settings' | 'chevron_left' | 'chevron_right' | 'menu_open' | 'menu' | 'expand_more' | 'expand_less' | 'add_a_photo' | 'auto_stories' | 'camera_alt' | 'document_scanner' | 'mic' | 'check_circle' | 'cancel' | 'psychology' | 'star' | 'school' | 'shopping_cart' | 'add' | 'remove' | 'arrow_forward' | 'check' | 'kid_star' | 'stadia_metric' | 'diversity_3' | 'bar_chart' | 'security' | 'qr_code_scanner' | 'person_add' | 'notifications';
+export type IconName = 'close' | 'visibility' | 'visibility_off' | 'google' | 'apple' | 'person' | 'account_circle' | 'badge' | 'logout' | 'home' | 'refresh' | 'settings' | 'chevron_left' | 'chevron_right' | 'menu_open' | 'menu' | 'expand_more' | 'expand_less' | 'add_a_photo' | 'auto_stories' | 'camera_alt' | 'document_scanner' | 'mic' | 'check_circle' | 'cancel' | 'psychology' | 'star' | 'school' | 'shopping_cart' | 'add' | 'remove' | 'arrow_forward' | 'check' | 'kid_star' | 'stadia_metric' | 'diversity_3' | 'bar_chart' | 'security' | 'qr_code_scanner' | 'person_add' | 'notifications' | 'trending_up' | 'trending_down' | 'apartment' | 'group' | 'child_care';
 
 interface IconProps {
   name: IconName;

@@ -34,11 +34,11 @@ export function StatCards() {
   if (!data) return null;
 
   const statCardsConfig = [
-    { label: 'Instituciones', value: data.totalInstituciones, icon: 'apartment', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Usuarios', value: data.totalUsuarios, icon: 'group', color: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Docentes', value: data.totalDocentes, icon: 'person', color: 'bg-amber-50 text-amber-600' },
-    { label: 'Alumnos', value: data.totalAlumnos, icon: 'child_care', color: 'bg-violet-50 text-violet-600' },
-  ];
+    { label: 'Instituciones', value: data.totalInstituciones, icon: 'apartment' as const, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Usuarios', value: data.totalUsuarios, icon: 'group' as const, color: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Docentes', value: data.totalDocentes, icon: 'person' as const, color: 'bg-amber-50 text-amber-600' },
+    { label: 'Alumnos', value: data.totalAlumnos, icon: 'child_care' as const, color: 'bg-violet-50 text-violet-600' },
+  ] as const;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px] mb-[24px]">
