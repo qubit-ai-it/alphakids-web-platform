@@ -5,16 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Input } from '../../../shared/components/ui/Input';
 import { Button } from '../../../shared/components/ui/Button';
 import { PasswordInput } from '../../../shared/components/auth/PasswordInput';
-import { SocialButton } from '../../../shared/components/auth/SocialButton';
 import { Icon } from '../../../shared/components/ui/Icon';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import logoKids from '../../../app/favicon.png';
 
-const loginSchema = z.object({
+const registerSchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio'),
   email: z
     .string()
     .min(1, 'El correo es requerido')
@@ -25,31 +24,31 @@ const loginSchema = z.object({
     .min(8, 'Mínimo 8 caracteres'),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-interface LoginFormProps {
+interface RegisterParentFormProps {
   onClose?: () => void;
-  onSwitchToRegister?: () => void;
+  onSwitchToLogin?: () => void;
 }
 
-export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
+export function RegisterParentForm({ onClose, onSwitchToLogin }: RegisterParentFormProps) {
   const router = useRouter();
-  const { login, isLoading, error: authError, clearError } = useAuth();
+  const { register: registerParent, isLoading, error: authError, clearError } = useAuth();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     mode: 'onChange',
-    defaultValues: { email: '', password: '' },
+    defaultValues: { name: '', email: '', password: '' },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      await login(data.email, data.password);
-      router.push('/dashboard');
+      await registerParent(data.email, data.password, data.name);
+      router.push('/welcome');
     } catch {
       // error is handled by auth context
     }
@@ -98,9 +97,12 @@ export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
         />
       </div>
 
-      <h1 className="text-[28px] font-bold text-secondary-900 text-center leading-tight mb-[20px]">
-        Iniciar Sesión
+      <h1 className="text-[28px] font-bold text-secondary-900 text-center leading-tight mb-[8px]">
+        Registro de Padres
       </h1>
+      <p className="text-secondary-600 text-center text-[14px] mb-[20px]">
+        Crea una cuenta para registrar a tus hijos.
+      </p>
 
       {authError && (
         <div className="mb-[12px] p-[10px] bg-red-100 text-red-700 rounded-[8px] text-[13px]">
@@ -110,6 +112,23 @@ export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
 
       <form noValidate className="w-full flex flex-col gap-[16px]" onSubmit={handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-[12px]">
+          <Input
+            label="Nombre y Apellidos"
+            placeholder="Escriba su nombre completo"
+            type="text"
+            disabled={isLoading}
+            {...register('name')}
+            onChange={(e) => {
+              register('name').onChange(e);
+              if (authError) clearError();
+            }}
+          />
+          {errors.name && (
+            <span className="text-red-600 text-[12px] -mt-[12px]">
+              {errors.name.message}
+            </span>
+          )}
+
           <Input
             label="Correo"
             placeholder="Escriba su correo electrónico"
@@ -142,35 +161,23 @@ export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
               {errors.password.message}
             </span>
           )}
-
-          <div className="text-right -mt-[8px]">
-            <Link href="/forgot-password" className="text-[13px] text-primary-500 hover:text-primary-600 transition-colors font-medium">
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
         </div>
 
         <div className="mt-[8px] w-full">
           <Button type="submit" variant="primary" size="fluid" disabled={isLoading}>
-            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {isLoading ? 'Registrando...' : 'Registrarse'}
           </Button>
-        </div>
-
-        <div className="w-full flex gap-[16px]">
-          <SocialButton provider="google" />
-          <SocialButton provider="apple" />
         </div>
 
         <div className="w-full text-center mt-2">
           <button
             type="button"
-            onClick={onSwitchToRegister}
+            onClick={onSwitchToLogin}
             className="text-[13px] text-primary-500 hover:text-primary-600 font-medium"
           >
-            ¿No tienes cuenta? Regístrate como padre
+            ¿Ya tienes cuenta? Inicia sesión
           </button>
         </div>
-
       </form>
     </div>
   );
