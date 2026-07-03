@@ -1,7 +1,8 @@
 import { api } from '../../../shared/lib/api-client';
-import type { LoginResponse, User } from '../../../shared/lib/types';
+import type { LoginResponse, User, Session } from '../../../shared/lib/types';
 
 const TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 export const authService = {
   getToken(): string | null {
@@ -15,6 +16,19 @@ export const authService = {
 
   removeToken(): void {
     localStorage.removeItem(TOKEN_KEY);
+  },
+
+  getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
+
+  setRefreshToken(token: string): void {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  },
+
+  removeRefreshToken(): void {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 
   async login(email: string, password: string): Promise<LoginResponse> {
@@ -35,9 +49,11 @@ export const authService = {
 
   async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout');
+      const refresh_token = authService.getRefreshToken();
+      await api.post('/auth/logout', refresh_token ? { refresh_token } : undefined);
     } finally {
       authService.removeToken();
+      authService.removeRefreshToken();
     }
   },
 
@@ -71,5 +87,17 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!authService.getToken();
+  },
+
+  async getSessions(): Promise<Session[]> {
+    return api.get<Session[]>('/auth/sessions');
+  },
+
+  async revokeSession(sessionId: string): Promise<{ message: string }> {
+    return api.delete<{ message: string }>(`/auth/sessions/${sessionId}`);
+  },
+
+  async revokeOtherSessions(refresh_token: string): Promise<{ message: string }> {
+    return api.delete<{ message: string }>('/auth/sessions', { refresh_token });
   },
 };

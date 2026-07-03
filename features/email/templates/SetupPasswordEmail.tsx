@@ -19,7 +19,7 @@ export function SetupPasswordEmail({ setupLink }: SetupPasswordEmailProps) {
               Bienvenido a AlphaKids
             </Heading>
             <Text style={{ color: '#575757', fontSize: 15, lineHeight: 1.5 }}>
-              Un administrador creó tu cuenta en AlphaKids. Hacé clic en el botón para configurar tu contraseña.
+              Un administrador creó tu cuenta en AlphaKids. Haz clic en el botón para configurar tu contraseña.
             </Text>
             <Link href={setupLink} style={{
               display: 'inline-block',
@@ -35,7 +35,7 @@ export function SetupPasswordEmail({ setupLink }: SetupPasswordEmailProps) {
               Configurar contraseña
             </Link>
             <Text style={{ color: '#828282', fontSize: 13, marginTop: 24 }}>
-              Este link expira en 24 horas. Si no solicitaste esta cuenta, ignorá este mensaje.
+              Este link expira en 24 horas. Si no solicitaste esta cuenta, ignora este mensaje.
             </Text>
           </Section>
         </Container>

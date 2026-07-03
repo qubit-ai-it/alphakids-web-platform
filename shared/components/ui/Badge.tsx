@@ -1,4 +1,5 @@
 import React from 'react';
+import { ROLE_LABELS } from '@/shared/lib/roles';
 
 type BadgeVariant = 'admin' | 'director' | 'teacher' | 'parent' | 'success' | 'warning' | 'error' | 'secondary';
 
@@ -20,12 +21,7 @@ const roleVariantMap: Record<string, BadgeVariant> = {
   parent: 'parent',
 };
 
-const roleLabels: Record<string, string> = {
-  admin: 'Admin',
-  director: 'Director',
-  teacher: 'Docente',
-  parent: 'Apoderado',
-};
+// Replaced by ROLE_LABELS from shared/lib/roles
 
 interface BadgeProps {
   variant?: BadgeVariant;
@@ -36,7 +32,7 @@ interface BadgeProps {
 
 export function Badge({ variant, role, children, className = '' }: BadgeProps) {
   const resolvedVariant = variant ?? (role ? roleVariantMap[role] ?? 'secondary' : 'secondary');
-  const label = children ?? (role ? roleLabels[role] ?? role : '');
+  const label = children ?? (role ? ROLE_LABELS[role] ?? role : '');
 
   return (
     <span className={`badge ${variantClasses[resolvedVariant]} ${className}`}>

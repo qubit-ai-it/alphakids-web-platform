@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { resizeImage } from '@/shared/lib/image';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
+import { ROLE_LABELS } from '@/shared/lib/roles';
 
 interface ProfileFormProps {
     onClose?: () => void;
@@ -27,16 +28,7 @@ export function ProfileForm({ onClose }: ProfileFormProps) {
     const [saving, setSaving] = useState(false);
 
     const primaryRole = user?.roles[0]?.role.name ?? 'user';
-    const roleName =
-        primaryRole === 'admin'
-            ? 'Administrador'
-            : primaryRole === 'director'
-                ? 'Director'
-                : primaryRole === 'teacher'
-                    ? 'Docente'
-                    : primaryRole === 'parent'
-                        ? 'Apoderado'
-                        : 'Usuario';
+    const roleName = ROLE_LABELS[primaryRole] ?? 'Usuario';
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();

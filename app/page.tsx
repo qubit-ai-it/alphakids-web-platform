@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useToast } from '@/shared/contexts/ToastContext';
 import { Modal } from '@/shared/components/ui/Modal';
 import { LoginForm } from '@/features/auth/components/LoginForm';
+import { RegisterParentForm } from '@/features/auth/components/RegisterParentForm';
 import { Button } from '@/shared/components/ui/Button';
 import Hero from '@/features/landing/components/Hero';
 import DemoVideo from '@/features/landing/components/DemoVideo';
@@ -19,16 +21,36 @@ import LeadForm from '@/features/landing/components/LeadForm';
 import Footer from '@/features/landing/components/Footer';
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const { addToast } = useToast();
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | null>(null);
   const [scrolled, setScrolled] = useState(false);
+
+  const isOnlyParent = user?.roles?.length === 1 && user.roles[0].role.name === 'parent';
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('login') === 'true') {
+        setAuthModalMode('login');
+      }
+      if (url.searchParams.get('expired') === 'true') {
+        addToast('error', 'Sesión Expirada', 'Tu sesión ha caducado o ha sido revocada. Por favor, inicia sesión nuevamente.');
+      }
+      if (url.searchParams.has('login') || url.searchParams.has('expired')) {
+        url.searchParams.delete('login');
+        url.searchParams.delete('expired');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [addToast]);
 
   if (isLoading) {
     return (
@@ -63,11 +85,17 @@ export default function HomePage() {
             <a href="#how-it-works" className="text-[14px] text-secondary-600 hover:text-secondary-900 hidden sm:inline font-medium">Cómo funciona</a>
             <a href="#pricing" className="text-[14px] text-secondary-600 hover:text-secondary-900 hidden sm:inline font-medium">Precios</a>
             {isAuthenticated ? (
-              <Button size="sm" onClick={() => router.push('/dashboard')}>
-                Volver al Dashboard
-              </Button>
+              isOnlyParent ? (
+                <Button size="sm" onClick={() => logout()}>
+                  Cerrar Sesión
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => router.push('/dashboard')}>
+                  Volver al Dashboard
+                </Button>
+              )
             ) : (
-              <Button size="sm" onClick={() => setIsOpen(true)}>
+              <Button size="sm" variant="primary" onClick={() => setAuthModalMode('login')}>
                 Iniciar Sesión
               </Button>
             )}
@@ -83,14 +111,27 @@ export default function HomePage() {
       <Pricing />
       <ComparisonTable />
       <FAQ />
-      <LeadForm />
+      <LeadForm onOpenRegister={() => setAuthModalMode('register')} />
       <Footer />
 
-      {isOpen && !isAuthenticated && (
+      {authModalMode === 'login' && !isAuthenticated && (
         <Modal>
-          <LoginForm onClose={() => setIsOpen(false)} />
+          <LoginForm 
+            onClose={() => setAuthModalMode(null)} 
+            onSwitchToRegister={() => setAuthModalMode('register')}
+          />
         </Modal>
       )}
+
+      {authModalMode === 'register' && !isAuthenticated && (
+        <Modal>
+          <RegisterParentForm 
+            onClose={() => setAuthModalMode(null)} 
+            onSwitchToLogin={() => setAuthModalMode('login')}
+          />
+        </Modal>
+      )}
+
     </div>
   );
 }

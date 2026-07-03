@@ -11,6 +11,7 @@ interface JwtPayload {
     sectionId: string;
     sectionName: string;
     gradeId: string;
+    gradeName?: string;
   }[];
   iat: number;
   exp: number;
@@ -56,6 +57,19 @@ export function getTeacherSectionIds(): string[] {
   if (!token) return [];
   const payload = decodeToken(token);
   return payload?.sectionAssignments?.map((a) => a.sectionId) ?? [];
+}
+
+export function getTeacherSectionAssignments(): {
+  sectionId: string;
+  sectionName: string;
+  gradeId: string;
+  gradeName?: string;
+}[] {
+  if (typeof window === 'undefined') return [];
+  const token = localStorage.getItem('access_token');
+  if (!token) return [];
+  const payload = decodeToken(token);
+  return payload?.sectionAssignments ?? [];
 }
 
 export function setTokenCookie(token: string): void {

@@ -16,11 +16,11 @@ const institutionSchema = z.object({
     .min(1, 'Falta el nombre')
     .max(150, 'Máximo 150 caracteres')
     .regex(/^[a-zA-ZáéíóúüñÑ0-9\s\.\,\-\(\)\&\/]+$/, 'Solo letras, números y espacios'),
-  slug: z
-    .string()
+  slug: z.string()
     .min(1, 'Falta el slug')
     .max(150, 'Máximo 150 caracteres')
-    .regex(/^[a-zA-Z0-9\-_\.]+$/, 'Solo letras, números, guiones y puntos'),
+    .transform(v => v.toLowerCase())
+    .refine(v => /^[a-z0-9\-_\.]+$/.test(v), 'Slug: solo minúsculas, números, guiones y puntos'),
   ruc: z
     .string()
     .regex(/^\d{11}$/, 'El RUC debe tener exactamente 11 dígitos numéricos'),
@@ -55,6 +55,8 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<InstitutionFormData>({
     resolver: zodResolver(institutionSchema),
@@ -132,8 +134,15 @@ export function InstitutionForm({ onSubmit, onCancel, isLoading, initialData }: 
               disabled={isLoading}
               error={errors.slug?.message}
               maxLength={150}
-              {...register('slug')}
+              value={watch('slug') ?? ''}
+              onChange={(e) => {
+                const val = e.target.value.toLowerCase();
+                setValue('slug', val, { shouldValidate: true });
+              }}
             />
+            <p className="text-[11px] text-secondary-500 mt-[6px]">
+              Slug: identificador único en la URL. Solo minúsculas, números y guiones. Ej: mi-institucion
+            </p>
             <Input
               label="RUC"
               placeholder="12345678901"

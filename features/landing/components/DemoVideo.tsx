@@ -7,7 +7,7 @@ export default function DemoVideo() {
             Velo en acción
           </h2>
           <p className="text-[15px] md:text-[17px] text-secondary-600 max-w-[500px] mx-auto">
-            Mirá cómo los niños aprenden palabras jugando con cámara, OCR y voz.
+            Mira cómo los niños aprenden palabras jugando con cámara, OCR y voz.
           </p>
         </div>
 

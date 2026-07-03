@@ -7,7 +7,6 @@ import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { Modal } from '@/shared/components/ui/Modal';
 import { WordAssignmentForm } from '@/features/docente/components/WordAssignmentForm';
 import { wordAssignmentsService } from '@/features/docente/services/word-assignments.service';
-import { getTeacherSectionIds } from '@/shared/lib/jwt';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
@@ -29,6 +28,7 @@ export default function DocenteAsignacionesPage() {
   const [assignments, setAssignments] = useState<WordAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   const { addToast } = useToast();
   const [filterStatus, setFilterStatus] = useState('');
   const [filterText, setFilterText] = useState('');
@@ -45,22 +45,24 @@ export default function DocenteAsignacionesPage() {
   const initialized = useRef(false);
 
   const refetch = useCallback(async () => {
-    const sectionIds = getTeacherSectionIds();
-    if (sectionIds.length === 0) { setAssignments([]); setIsLoading(false); return; }
     setIsLoading(true);
     setError(null);
+
     try {
-      const results = await Promise.all(
-        sectionIds.map(() =>
-          wordAssignmentsService.getAll().catch(() => [] as WordAssignment[]),
-        ),
-      );
-      const all = results.flat();
-      const unique = Array.from(new Map(all.map((a) => [a.id, a])).values());
-      setAssignments(unique);
-    } catch (err) {
-      const { title, message } = getErrorMessage(err);
-      setError(title ? `${title}: ${message}` : 'Error al cargar asignaciones');
+      // Try teacher-scoped endpoint first
+      const data = await wordAssignmentsService.getTeacherAssignments();
+      setAssignments(data);
+      setUsingFallback(false);
+    } catch {
+      // Fallback: old approach (will likely also fail for teacher role)
+      try {
+        const data = await wordAssignmentsService.getAll();
+        setAssignments(data);
+        setUsingFallback(true);
+      } catch (err) {
+        const { title, message } = getErrorMessage(err);
+        setError(title ? `${title}: ${message}` : 'Error al cargar asignaciones');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -165,6 +167,13 @@ export default function DocenteAsignacionesPage() {
         <div><h1 className="page-title">Asignaciones</h1><p className="page-subtitle">Gestión de palabras asignadas a alumnos</p></div>
         <Button onClick={handleCreate} size="sm" className="hidden md:inline-flex"><span className="material-symbols-outlined text-[18px] mr-[4px]">add</span>Nueva Asignación</Button>
       </div>
+
+      {usingFallback && (
+        <div className="mb-[16px] px-[16px] py-[10px] bg-amber-50 border border-amber-200 rounded-[10px] text-[13px] text-amber-800 flex items-center gap-[8px]">
+          <span className="material-symbols-outlined text-[18px] text-amber-500">info</span>
+          Usando filtro local — algunos datos podrían no estar actualizados.
+        </div>
+      )}
 
       <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
         <div className="flex items-center gap-[8px] max-w-[320px] flex-1">

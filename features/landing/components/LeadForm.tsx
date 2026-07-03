@@ -22,7 +22,11 @@ function detectSource(): string {
   return 'directo';
 }
 
-export default function LeadForm() {
+interface LeadFormProps {
+  onOpenRegister?: () => void;
+}
+
+export default function LeadForm({ onOpenRegister }: LeadFormProps) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('padre');
   const [count, setCount] = useState<number | null>(null);
@@ -108,11 +112,13 @@ export default function LeadForm() {
           </span>
 
           <h2 className="mb-[8px] text-[28px] font-bold text-secondary-900 md:text-[32px]">
-            ¿Querés probar una demo?
+            ¿Quieres probar una demo?
           </h2>
 
           <p className="text-[15px] text-secondary-600 mb-[28px] max-w-[400px] mx-auto">
-            Dejanos tu correo y te contactamos para coordinar una demo gratuita.
+            {role === 'padre'
+              ? 'Prueba nuestra aplicación registrándote aquí.'
+              : 'Déjanos tu correo y te contactamos para coordinar una demo gratuita.'}
           </p>
 
           {/* Success feedback */}
@@ -125,7 +131,7 @@ export default function LeadForm() {
           {/* Error feedback */}
           {status === 'error' && (
             <div className="mb-[24px] px-[20px] py-[12px] bg-red-50 text-red-600 rounded-[10px] text-[14px] font-medium">
-              Algo salió mal. ¿Podés intentar de nuevo?
+              Algo salió mal. ¿Puedes intentar de nuevo?
             </div>
           )}
 
@@ -144,35 +150,48 @@ export default function LeadForm() {
               ))}
             </select>
 
-            {/* Email + submit row */}
-            <div className="flex flex-col sm:flex-row gap-[12px]">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@correo.com"
-                required
-                disabled={status === 'loading'}
-                className="flex-1 px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-secondary-400 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={status === 'loading' || !email.trim()}
-                className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px] disabled:opacity-50"
-              >
-                {status === 'loading' ? (
-                  <>
-                    <span className="spinner spinner-sm" />
-                    Enviando…
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[20px]">send</span>
-                    Enviar
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Action Area based on role */}
+            {role === 'padre' ? (
+              <div className="flex flex-col sm:flex-row gap-[12px] justify-center mt-2">
+                <button
+                  type="button"
+                  onClick={onOpenRegister}
+                  className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px]"
+                >
+                  <span className="material-symbols-outlined text-[20px]">person_add</span>
+                  Crea tu cuenta
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-[12px]">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  required
+                  disabled={status === 'loading'}
+                  className="flex-1 px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-secondary-400 disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={status === 'loading' || !email.trim()}
+                  className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px] disabled:opacity-50"
+                >
+                  {status === 'loading' ? (
+                    <>
+                      <span className="spinner spinner-sm" />
+                      Enviando…
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[20px]">send</span>
+                      Enviar
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </form>
 
           {/* Source badge (informational, hidden on small) */}
