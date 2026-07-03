@@ -139,7 +139,7 @@ export default function DirectorDocentesPage() {
         const setupLink = (newUser as { setupLink: string }).setupLink;
         const html = await renderEmail(<SetupPasswordEmail setupLink={setupLink} />);
         try {
-          await emailService.send(data.email, 'Configurá tu contraseña en AlphaKids', html);
+          await emailService.send(data.email, 'Configura tu contraseña en AlphaKids', html);
           addToast('success', 'Docente creado', 'Se envió un email con el link para configurar la contraseña.');
         } catch {
           addToast('warning', 'Docente creado', 'No se pudo enviar el email de bienvenida.');

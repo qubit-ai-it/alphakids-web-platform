@@ -112,13 +112,13 @@ export default function LeadForm({ onOpenRegister }: LeadFormProps) {
           </span>
 
           <h2 className="mb-[8px] text-[28px] font-bold text-secondary-900 md:text-[32px]">
-            ¿Querés probar una demo?
+            ¿Quieres probar una demo?
           </h2>
 
           <p className="text-[15px] text-secondary-600 mb-[28px] max-w-[400px] mx-auto">
-            {role === 'padre' 
-              ? 'Prueba nuestra aplicación registrándote aquí.' 
-              : 'Dejanos tu correo y te contactamos para coordinar una demo gratuita.'}
+            {role === 'padre'
+              ? 'Prueba nuestra aplicación registrándote aquí.'
+              : 'Déjanos tu correo y te contactamos para coordinar una demo gratuita.'}
           </p>
 
           {/* Success feedback */}
@@ -131,7 +131,7 @@ export default function LeadForm({ onOpenRegister }: LeadFormProps) {
           {/* Error feedback */}
           {status === 'error' && (
             <div className="mb-[24px] px-[20px] py-[12px] bg-red-50 text-red-600 rounded-[10px] text-[14px] font-medium">
-              Algo salió mal. ¿Podés intentar de nuevo?
+              Algo salió mal. ¿Puedes intentar de nuevo?
             </div>
           )}
 

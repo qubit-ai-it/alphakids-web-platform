@@ -32,7 +32,7 @@ export const gameModes: GameMode[] = [
     icon: 'document_scanner',
     title: 'OCR',
     description:
-      'Escaneá tarjetas o etiquetas del kit físico. La app reconoce el texto y lo asocia con imágenes y sonidos.',
+      'Escanea tarjetas o etiquetas del kit físico. La app reconoce el texto y lo asocia con imágenes y sonidos.',
     color: 'secondary',
   },
   {
@@ -54,15 +54,15 @@ export interface HowItWorksStep {
 export const howItWorks: HowItWorksStep[] = [
   {
     step: 1,
-    title: 'Comprá el kit',
+    title: 'Compra el kit',
     description:
-      'Adquirí el kit físico por S/ 75 (1er año incluye app). Incluye tarjetas, letras magnéticas y guía para padres.',
+      'Adquiere el kit físico por S/ 75 (1er año incluye app). Incluye tarjetas, letras magnéticas y guía para padres.',
   },
   {
     step: 2,
-    title: 'Descargá la app',
+    title: 'Descarga la app',
     description:
-      'Escaneá el código QR del kit, descargá la app en cualquier tablet o celular y creá el perfil de tu hijo.',
+      'Escanea el código QR del kit, descarga la app en cualquier tablet o celular y crea el perfil de tu hijo.',
   },
   {
     step: 3,
@@ -192,12 +192,12 @@ export const faqItems: FaqItem[] = [
   {
     question: '¿En qué dispositivos funciona?',
     answer:
-      'AlphaKids funciona en cualquier celular o tablet con Android 8+ o iOS 14+. También podés usarlo en tablets educativas. La app se adapta al tamaño de la pantalla automáticamente.',
+      'AlphaKids funciona en cualquier celular o tablet con Android 8+ o iOS 14+. También puedes usarlo en tablets educativas. La app se adapta al tamaño de la pantalla automáticamente.',
   },
   {
     question: '¿Cómo sé si mi hijo está aprendiendo?',
     answer:
-      'La app incluye un panel para padres donde podés ver el progreso: palabras aprendidas, tiempo de uso, modos más utilizados y logros alcanzados. Recibí reportes semanales por correo.',
+      'La app incluye un panel para padres donde puedes ver el progreso: palabras aprendidas, tiempo de uso, modos más utilizados y logros alcanzados. Recibe reportes semanales por correo.',
   },
 ];
 
@@ -256,7 +256,7 @@ export const productShowcaseContent = {
       {
         icon: 'spellcheck',
         title: 'Banco de Palabras',
-        desc: 'Gestioná vocabulario por niveles: desde inicial hasta experto, con imágenes y audio.',
+        desc: 'Gestiona vocabulario por niveles: desde inicial hasta experto, con imágenes y audio.',
       },
       {
         icon: 'assignment_turned_in',
@@ -271,7 +271,7 @@ export const productShowcaseContent = {
       {
         icon: 'monitoring',
         title: 'Métricas y Reportes',
-        desc: 'Visualizá el rendimiento por sección, alumno y período con gráficos claros.',
+        desc: 'Visualiza el rendimiento por sección, alumno y período con gráficos claros.',
       },
       {
         icon: 'group',

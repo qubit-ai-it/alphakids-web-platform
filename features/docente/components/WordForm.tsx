@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,7 +41,19 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Audio: modo exclusivo — upload O grabación
+  const [audioMode, setAudioMode] = useState<'upload' | 'record' | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'preview'>('idle');
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const existingImageUrl = word?.imageUrl ?? null;
   const existingAudioUrl = word?.audioUrl ?? null;
@@ -73,9 +85,92 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
     reader.readAsDataURL(file);
   };
 
+  const handleSelectUpload = () => {
+    setAudioMode('upload');
+    setRecordedBlob(null);
+    setRecordingStatus('idle');
+    setRecordingDuration(0);
+    audioChunksRef.current = [];
+  };
+
+  const handleSelectRecord = () => {
+    setAudioMode('record');
+    setAudioFile(null);
+  };
+
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAudioFile(e.target.files?.[0] ?? null);
   };
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        setRecordedBlob(blob);
+        setRecordingStatus('preview');
+        setRecordingDuration(0);
+
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
+
+      mediaRecorder.start();
+      setRecordingStatus('recording');
+
+      let seconds = 0;
+      timerRef.current = setInterval(() => {
+        seconds++;
+        setRecordingDuration(seconds);
+      }, 1000);
+    } catch {
+      setRecordingStatus('idle');
+      addToast('error', 'Error de micrófono', 'No se pudo acceder al micrófono. Verifica los permisos.');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleResetRecording = () => {
+    setRecordedBlob(null);
+    setRecordingStatus('idle');
+    setRecordingDuration(0);
+    audioChunksRef.current = [];
+  };
+
+  // Cleanup media resources on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   const onInvalid = () => {
     addToast('error', 'El formulario se llenó incorrectamente');
@@ -88,18 +183,30 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
 
   const handleFormSubmit = (data: WordFormData) => {
     const hasImage = isEdit ? !!existingImageUrl || !!imageFile : !!imageFile;
-    const hasAudio = isEdit ? !!existingAudioUrl || !!audioFile : !!audioFile;
+    const hasExistingAudio = isEdit && !!existingAudioUrl;
+    const hasNewAudio = hasExistingAudio || audioFile || recordedBlob;
+    // En create, el usuario debe elegir explícitamente upload o record
+    const audioChosen = isEdit ? hasNewAudio : audioMode !== null;
+    const hasAnyAudio = isEdit ? audioChosen : audioMode !== null && (!!audioFile || !!recordedBlob);
 
     if (!hasImage) {
       addToast('error', 'Falta la imagen');
       return;
     }
-    if (!hasAudio) {
-      addToast('error', 'Falta el audio');
+    if (!hasAnyAudio) {
+      addToast('error', 'Falta el audio', isEdit ? 'Selecciona subir archivo o grabar audio.' : 'Elige subir un archivo de audio o grabarlo con el micrófono.');
       return;
     }
 
-    onSubmit(data, imageFile ?? undefined, audioFile ?? undefined);
+    let finalAudioFile: File | undefined;
+    if (audioMode === 'record' && recordedBlob) {
+      finalAudioFile = new File([recordedBlob], 'grabacion.webm', { type: recordedBlob.type });
+    } else if (audioMode === 'upload' && audioFile) {
+      finalAudioFile = audioFile;
+    }
+    // En edit, si no hay archivo nuevo pero existe audio previo, no mandamos archivo (se conserva)
+
+    onSubmit(data, imageFile ?? undefined, finalAudioFile);
   };
 
   const imageSrc = imagePreview ?? existingImageUrl;
@@ -182,27 +289,154 @@ export function WordForm({ onSubmit, onCancel, isLoading, word }: WordFormProps)
               <label className="label-auth">
                 Audio <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center gap-[12px]">
-                <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    accept="audio/*"
+
+              {/* Selector de modo: upload o record */}
+              {!existingAudioUrl && (
+                <div className="flex gap-[8px] mb-[12px]">
+                  <button
+                    type="button"
+                    onClick={handleSelectUpload}
+                    className={`btn btn-sm ${audioMode === 'upload' ? 'btn-primary' : 'btn-secondary'} inline-flex items-center gap-[6px]`}
                     disabled={isLoading}
-                    onChange={handleAudioChange}
-                    className="text-[14px] text-secondary-700 file:mr-[12px] file:py-[8px] file:px-[16px] file:rounded-[8px] file:border-0 file:text-[13px] file:font-medium file:bg-primary-100 file:text-primary-700 file:cursor-pointer hover:file:bg-primary-200"
-                  />
-                  {audioFile && (
-                    <p className="text-[12px] text-primary-600 mt-[6px]">{audioFile.name}</p>
-                  )}
-                  {existingAudioUrl && !audioFile && (
-                    <p className="text-[12px] text-primary-600 mt-[6px]">Audio existente</p>
-                  )}
-                  <p className="text-[11px] text-secondary-500 mt-[6px]">MP3, WAV o OGG.</p>
+                  >
+                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                    Subir archivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectRecord}
+                    className={`btn btn-sm ${audioMode === 'record' ? 'btn-primary' : 'btn-secondary'} inline-flex items-center gap-[6px]`}
+                    disabled={isLoading}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">mic</span>
+                    Grabar audio
+                  </button>
                 </div>
-              </div>
+              )}
+
+              {/* Audio existente en edición */}
+              {existingAudioUrl && !audioFile && !recordedBlob && (
+                <div className="flex items-center gap-[12px]">
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[12px] text-primary-600">Audio existente</p>
+                    <div className="flex gap-[8px] mt-[8px]">
+                      <button
+                        type="button"
+                        onClick={handleSelectUpload}
+                        className={`btn btn-sm ${audioMode === 'upload' ? 'btn-primary' : 'btn-secondary'} inline-flex items-center gap-[6px]`}
+                        disabled={isLoading}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                        Reemplazar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectRecord}
+                        className={`btn btn-sm ${audioMode === 'record' ? 'btn-primary' : 'btn-secondary'} inline-flex items-center gap-[6px]`}
+                        disabled={isLoading}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">mic</span>
+                        Grabar nuevo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload mode */}
+              {audioMode === 'upload' && (
+                <div className="flex items-center gap-[12px]">
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      disabled={isLoading}
+                      onChange={handleAudioChange}
+                      className="text-[14px] text-secondary-700 file:mr-[12px] file:py-[8px] file:px-[16px] file:rounded-[8px] file:border-0 file:text-[13px] file:font-medium file:bg-primary-100 file:text-primary-700 file:cursor-pointer hover:file:bg-primary-200"
+                    />
+                    {audioFile && (
+                      <p className="text-[12px] text-primary-600 mt-[6px]">{audioFile.name}</p>
+                    )}
+                    <p className="text-[11px] text-secondary-500 mt-[6px]">MP3, WAV o OGG.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Record mode */}
+              {audioMode === 'record' && (
+                <div className="flex items-center gap-[12px]">
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
+                  </div>
+                  <div className="flex-1">
+                    {recordingStatus === 'idle' && (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={handleStartRecording}
+                          className="btn btn-secondary btn-sm inline-flex items-center gap-[6px]"
+                          disabled={isLoading}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">mic</span>
+                          Empezar grabación
+                        </button>
+                        <p className="text-[11px] text-secondary-500 mt-[6px]">Graba audio directamente desde el navegador.</p>
+                      </div>
+                    )}
+                    {recordingStatus === 'recording' && (
+                      <div className="flex items-center gap-[12px]">
+                        <span className="w-[12px] h-[12px] rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[14px] font-mono text-red-600">
+                          {String(Math.floor(recordingDuration / 60)).padStart(2, '0')}:
+                          {String(recordingDuration % 60).padStart(2, '0')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleStopRecording}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Detener
+                        </button>
+                      </div>
+                    )}
+                    {recordingStatus === 'preview' && recordedBlob && (
+                      <div className="flex flex-col gap-[8px]">
+                        <audio
+                          src={URL.createObjectURL(recordedBlob)}
+                          controls
+                          className="w-full max-w-[280px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleResetRecording();
+                            handleSelectRecord();
+                          }}
+                          className="text-[13px] text-primary-600 hover:text-primary-700 font-medium self-start"
+                        >
+                          Volver a grabar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Estado inicial: ningún modo seleccionado */}
+              {!audioMode && !existingAudioUrl && (
+                <div className="flex items-center gap-[12px]">
+                  <div className="w-[64px] h-[64px] rounded-[12px] bg-secondary-100 border border-secondary-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[28px] text-secondary-400">mic</span>
+                  </div>
+                  <p className="text-[13px] text-secondary-500">Elegí cómo agregar el audio.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-[8px]">

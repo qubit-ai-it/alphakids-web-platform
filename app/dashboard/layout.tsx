@@ -9,6 +9,8 @@ import { MobileHeader } from '@/shared/components/layout/MobileHeader';
 import { MobileActionProvider } from '@/shared/contexts/MobileActionContext';
 import { ProfileModal } from '@/features/profile/components/ProfileModal';
 import { SessionsModal } from '@/features/auth/components/SessionsModal';
+import { CsvUploadModal } from '@/features/director/components/CsvUploadModal';
+import { ROLE_LABELS } from '@/shared/lib/roles';
 
 interface NavItem {
   href: string;
@@ -49,6 +51,7 @@ export default function DashboardLayout({
   const [profileOpen, setProfileOpen] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,17 +95,9 @@ export default function DashboardLayout({
   if (!user) return null;
 
   const primaryRole = user.roles[0]?.role.name ?? 'user';
+  const isDirector = primaryRole === 'director';
   const navItems = roleNavMap[primaryRole] ?? [];
-  const roleName =
-    primaryRole === 'admin'
-      ? 'Administrador'
-      : primaryRole === 'director'
-        ? 'Director'
-        : primaryRole === 'teacher'
-          ? 'Docente'
-          : primaryRole === 'parent'
-            ? 'Apoderado'
-            : 'Usuario';
+  const roleName = ROLE_LABELS[primaryRole] ?? 'Usuario';
 
   const institutionName = getInstitutionName();
 
@@ -126,6 +121,8 @@ export default function DashboardLayout({
           onLogout={handleLogout}
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
+          showCsvImport={isDirector}
+          onCsvImport={() => setCsvImportOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto pt-14 md:pt-0 sidebar-scroll">
@@ -134,6 +131,9 @@ export default function DashboardLayout({
 
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
         <SessionsModal isOpen={sessionsOpen} onClose={() => setSessionsOpen(false)} />
+        {csvImportOpen && (
+          <CsvUploadModal isOpen={csvImportOpen} onClose={() => setCsvImportOpen(false)} />
+        )}
       </div>
     </MobileActionProvider>
   );

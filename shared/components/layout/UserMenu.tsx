@@ -9,9 +9,11 @@ interface UserMenuProps {
   onOpenProfile: () => void;
   onOpenSessions: () => void;
   onLogout: () => void;
+  showCsvImport?: boolean;
+  onCsvImport?: () => void;
 }
 
-export function UserMenu({ isOpen, onClose, onOpenProfile, onOpenSessions, onLogout }: UserMenuProps) {
+export function UserMenu({ isOpen, onClose, onOpenProfile, onOpenSessions, onLogout, showCsvImport, onCsvImport }: UserMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +56,15 @@ export function UserMenu({ isOpen, onClose, onOpenProfile, onOpenSessions, onLog
         <span className="material-symbols-outlined text-[18px]">devices</span>
         Sesiones
       </button>
+      {showCsvImport && (
+        <button
+          onClick={() => { onCsvImport?.(); onClose(); }}
+          className="user-menu-item"
+        >
+          <span className="material-symbols-outlined text-[18px]">upload_file</span>
+          Importar datos
+        </button>
+      )}
       <button
         onClick={() => {
           onLogout();

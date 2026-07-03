@@ -28,7 +28,7 @@ export default function FAQ() {
             Preguntas frecuentes
           </h2>
           <p className="text-[16px] md:text-[18px] text-secondary-600 max-w-[500px] mx-auto">
-            Todo lo que necesitás saber antes de comprar.
+            Todo lo que necesitas saber antes de comprar.
           </p>
         </div>
 

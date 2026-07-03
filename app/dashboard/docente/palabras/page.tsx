@@ -112,6 +112,8 @@ export default function DocentePalabrasPage() {
       }
       if (audioFile) {
         audioUrl = await readFileAsDataUrl(audioFile);
+        // Cloudinary no tolera parámetros extra (;codecs=opus) en el MIME del data URL
+        audioUrl = audioUrl.replace(/;codecs=[\w,]+/g, '');
       }
 
       if (editingWord) {

@@ -26,6 +26,8 @@ interface SidebarProps {
   onLogout: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  showCsvImport?: boolean;
+  onCsvImport?: () => void;
 }
 
 export function Sidebar({
@@ -38,6 +40,8 @@ export function Sidebar({
   onLogout,
   mobileOpen = false,
   onMobileClose,
+  showCsvImport,
+  onCsvImport,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -200,6 +204,8 @@ export function Sidebar({
           onOpenProfile={onOpenProfile}
           onOpenSessions={onOpenSessions}
           onLogout={onLogout}
+          showCsvImport={showCsvImport}
+          onCsvImport={onCsvImport}
         />
       </div>
     </>

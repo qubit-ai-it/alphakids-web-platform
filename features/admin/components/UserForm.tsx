@@ -9,11 +9,12 @@ import { Input } from '@/shared/components/ui/Input';
 import { Button } from '@/shared/components/ui/Button';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { institutionsService } from '@/features/admin/services/institutions.service';
+import { ROLE_LABELS } from '@/shared/lib/roles';
 import type { User, Institution, InstitutionMember } from '@/shared/lib/types';
 
-const availableRoles = ['admin', 'director', 'teacher', 'parent'] as const;
+const availableRoles = ['admin', 'director', 'teacher'] as const;
 const needsInstitution = (roles: string[]) =>
-  roles.includes('director') || roles.includes('teacher') || roles.includes('parent');
+  roles.includes('director') || roles.includes('teacher');
 const requiresInstitution = (roles: string[]) =>
   roles.includes('director') || roles.includes('teacher');
 
@@ -264,7 +265,7 @@ function CreateUserForm({
                       {...register('roles')}
                       className="w-[16px] h-[16px] rounded border-secondary-300"
                     />
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                    {ROLE_LABELS[role] ?? role}
                   </label>
                 ))}
               </div>
@@ -391,7 +392,7 @@ function EditUserForm({
                       {...register('roles')}
                       className="w-[16px] h-[16px] rounded border-secondary-300"
                     />
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                    {ROLE_LABELS[role] ?? role}
                   </label>
                 ))}
               </div>

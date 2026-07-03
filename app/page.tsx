@@ -42,7 +42,7 @@ export default function HomePage() {
         setAuthModalMode('login');
       }
       if (url.searchParams.get('expired') === 'true') {
-        addToast('error', 'Sesión Expirada', 'Tu sesión ha caducado o ha sido revocada. Por favor, iniciá sesión nuevamente.');
+        addToast('error', 'Sesión Expirada', 'Tu sesión ha caducado o ha sido revocada. Por favor, inicia sesión nuevamente.');
       }
       if (url.searchParams.has('login') || url.searchParams.has('expired')) {
         url.searchParams.delete('login');
@@ -131,6 +131,7 @@ export default function HomePage() {
           />
         </Modal>
       )}
+
     </div>
   );
 }
