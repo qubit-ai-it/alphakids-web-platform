@@ -28,6 +28,16 @@ export const studentsService = {
     return api.get<Student[]>('/students', { take: 9999 });
   },
 
+  /** Teacher-scoped: only students from the teacher's sections */
+  async getTeacherStudents(): Promise<Student[]> {
+    return api.get<Student[]>('/teacher/students');
+  },
+
+  /** Director-scoped: students from the director's institutions */
+  async getDirectorStudents(): Promise<Student[]> {
+    return api.get<Student[]>('/director/students');
+  },
+
   async getById(id: string): Promise<Student> {
     return api.get<Student>(`/students/${id}`);
   },

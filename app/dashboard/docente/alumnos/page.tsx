@@ -13,23 +13,36 @@ export default function DocenteAlumnosPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [filterText, setFilterText] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const initialized = useRef(false);
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback(async () => {
     const sectionIds = getTeacherSectionIds();
     if (sectionIds.length === 0) { setStudents([]); setIsLoading(false); return; }
+
     setIsLoading(true);
     setError(null);
-    studentsService.getAll().then((data) => {
-      setStudents(data.filter((s) => sectionIds.includes(s.sectionId ?? '')));
+
+    try {
+      // Try teacher-scoped endpoint first
+      const data = await studentsService.getTeacherStudents();
+      setStudents(data);
+      setUsingFallback(false);
+    } catch {
+      // Fallback: all students + filter client-side by sectionIds
+      try {
+        const data = await studentsService.getAll();
+        setStudents(data.filter((s) => sectionIds.includes(s.sectionId ?? '')));
+        setUsingFallback(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar alumnos');
+      }
+    } finally {
       setIsLoading(false);
-    }).catch((err: Error) => {
-      setError(err.message || 'Error al cargar alumnos');
-      setIsLoading(false);
-    });
+    }
   }, []);
 
   useEffect(() => {
@@ -78,6 +91,13 @@ export default function DocenteAlumnosPage() {
         <h1 className="page-title">Alumnos</h1>
         <p className="page-subtitle">Alumnos asignados a tus secciones</p>
       </div>
+
+      {usingFallback && (
+        <div className="mb-[16px] px-[16px] py-[10px] bg-amber-50 border border-amber-200 rounded-[10px] text-[13px] text-amber-800 flex items-center gap-[8px]">
+          <span className="material-symbols-outlined text-[18px] text-amber-500">info</span>
+          Usando filtro local — algunos datos podrían no estar actualizados.
+        </div>
+      )}
 
       <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
         <div className="flex items-center gap-[8px] max-w-[320px] flex-1">

@@ -19,6 +19,11 @@ export const wordAssignmentsService = {
     return api.get<WordAssignment[]>('/word-assignments', { take: 9999 });
   },
 
+  /** Teacher-scoped: only assignments for students in the teacher's sections */
+  async getTeacherAssignments(): Promise<WordAssignment[]> {
+    return api.get<WordAssignment[]>('/teacher/word-assignments');
+  },
+
   async getById(id: string): Promise<WordAssignment> {
     return api.get<WordAssignment>(`/word-assignments/${id}`);
   },

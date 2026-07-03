@@ -54,8 +54,8 @@ export default function DirectorAlumnosPage() {
     const id = getInstitutionId();
     if (!id) return;
     setIsLoading(true); setError(null);
-    studentsService.getAll().then((data) => {
-      setStudents(data.filter((s) => s.institutionId === id));
+    studentsService.getDirectorStudents().then((data) => {
+      setStudents(data);
       setIsLoading(false);
     }).catch((err: Error) => {
       setError(err.message || 'Error al cargar alumnos');

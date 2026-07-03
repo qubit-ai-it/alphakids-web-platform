@@ -10,9 +10,6 @@ import { UserForm } from '@/features/admin/components/UserForm';
 import { usersService } from '@/features/admin/services/users.service';
 import { institutionsService } from '@/features/admin/services/institutions.service';
 import { membersService } from '@/features/admin/services/members.service';
-import { emailService } from '@/features/email/services/email.service';
-import { SetupPasswordEmail } from '@/features/email/templates/SetupPasswordEmail';
-import { renderEmail } from '@/shared/lib/render-email';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -162,14 +159,7 @@ export default function AdminUsuariosPage() {
       }
 
       if ((newUser as { setupLink?: string }).setupLink) {
-        const setupLink = (newUser as { setupLink: string }).setupLink;
-        const html = await renderEmail(<SetupPasswordEmail setupLink={setupLink} />);
-        try {
-          await emailService.send(data.email, 'Configurá tu contraseña en AlphaKids', html);
-          addToast('success', 'Email de bienvenida enviado');
-        } catch {
-          addToast('error', 'No se pudo enviar el email', 'El usuario fue creado pero el email no pudo enviarse.');
-        }
+        addToast('success', 'Email de bienvenida enviado');
       }
 
       setShowForm(false);

@@ -10,9 +10,6 @@ import { Button } from '@/shared/components/ui/Button';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { authService } from '@/features/auth/services/auth.service';
-import { emailService } from '@/features/email/services/email.service';
-import { ResetPasswordEmail } from '@/features/email/templates/ResetPasswordEmail';
-import { renderEmail } from '@/shared/lib/render-email';
 import { canSendEmail, recordSend, getCooldownRemaining } from '@/shared/lib/email-rate-limit';
 
 const forgotSchema = z.object({
@@ -88,11 +85,7 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const res = await authService.forgotPassword(data.email);
-      if (res.resetLink) {
-        const html = await renderEmail(<ResetPasswordEmail resetLink={res.resetLink} />);
-        await emailService.send(data.email, 'Restablecé tu contraseña en AlphaKids', html);
-      }
+      await authService.forgotPassword(data.email);
       recordSend(data.email);
       const newRemaining = getCooldownRemaining(data.email);
       setCooldown(newRemaining);
