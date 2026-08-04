@@ -41,7 +41,12 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      if (response.status === 401 && !_isRetry) {
+      // Login/register 401 = credenciales inválidas, no "sesión expirada"
+      const isCredentialRequest =
+        endpoint.startsWith('/auth/login') ||
+        endpoint.startsWith('/auth/register');
+
+      if (response.status === 401 && !_isRetry && !isCredentialRequest) {
         const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
         if (refreshToken) {
           if (!this.isRefreshing) {
@@ -60,7 +65,7 @@ class ApiClient {
           }
         }
         
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && (token || refreshToken)) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/?login=true&expired=true';
