@@ -34,7 +34,7 @@ const publicRoutes = [
   '/favicon.ico',
 ];
 
-function getJwtSecret(): Uint8Array | null {
+export function getJwtSecret(): Uint8Array | null {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 32) {
     // Fail closed: if the secret is missing or too short, we cannot verify tokens.
@@ -51,7 +51,7 @@ function getJwtSecret(): Uint8Array | null {
  * This replaces the previous decode-only path, which let any client forge a
  * token with arbitrary roles and bypass the dashboard gating.
  */
-async function verifyToken(token: string): Promise<JwtPayload | null> {
+export async function verifyToken(token: string): Promise<JwtPayload | null> {
   const secret = getJwtSecret();
   if (!secret) return null;
 
