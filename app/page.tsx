@@ -7,7 +7,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { Modal } from '@/shared/components/ui/Modal';
 import { LoginForm } from '@/features/auth/components/LoginForm';
-import { RegisterParentForm } from '@/features/auth/components/RegisterParentForm';
+import { TryItModal } from '@/features/landing/components/TryItModal';
+import { QrDownloadModal } from '@/features/landing/components/QrDownloadModal';
 import { Button } from '@/shared/components/ui/Button';
 import Hero from '@/features/landing/components/Hero';
 import DemoVideo from '@/features/landing/components/DemoVideo';
@@ -24,7 +25,8 @@ export default function HomePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
   const { addToast } = useToast();
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | null>(null);
+  type ModalMode = 'login' | 'tryIt' | 'qr' | null;
+  const [modal, setModal] = useState<ModalMode>(null);
   const [scrolled, setScrolled] = useState(false);
 
   const isOnlyParent = user?.roles?.length === 1 && user.roles[0].role.name === 'parent';
@@ -39,7 +41,7 @@ export default function HomePage() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       if (url.searchParams.get('login') === 'true') {
-        setAuthModalMode('login');
+        setModal('login');
       }
       if (url.searchParams.get('expired') === 'true') {
         addToast('error', 'Sesión Expirada', 'Tu sesión ha caducado o ha sido revocada. Por favor, inicia sesión nuevamente.');
@@ -95,7 +97,7 @@ export default function HomePage() {
                 </Button>
               )
             ) : (
-              <Button size="sm" variant="primary" onClick={() => setAuthModalMode('login')}>
+              <Button size="sm" variant="primary" onClick={() => setModal('login')}>
                 Iniciar Sesión
               </Button>
             )}
@@ -111,25 +113,31 @@ export default function HomePage() {
       <Pricing />
       <ComparisonTable />
       <FAQ />
-      <LeadForm onOpenRegister={() => setAuthModalMode('register')} />
+      <LeadForm />
       <Footer />
 
-      {authModalMode === 'login' && !isAuthenticated && (
+      {modal === 'login' && !isAuthenticated && (
         <Modal>
-          <LoginForm 
-            onClose={() => setAuthModalMode(null)} 
-            onSwitchToRegister={() => setAuthModalMode('register')}
+          <LoginForm
+            onClose={() => setModal(null)}
+            onSwitchToTryIt={() => setModal('tryIt')}
           />
         </Modal>
       )}
 
-      {authModalMode === 'register' && !isAuthenticated && (
-        <Modal>
-          <RegisterParentForm 
-            onClose={() => setAuthModalMode(null)} 
-            onSwitchToLogin={() => setAuthModalMode('login')}
-          />
-        </Modal>
+      {modal === 'tryIt' && (
+        <TryItModal
+          isOpen
+          onClose={() => setModal(null)}
+          onSuccess={() => setModal('qr')}
+        />
+      )}
+
+      {modal === 'qr' && (
+        <QrDownloadModal
+          isOpen
+          onClose={() => setModal(null)}
+        />
       )}
 
     </div>

@@ -29,10 +29,10 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onClose?: () => void;
-  onSwitchToRegister?: () => void;
+  onSwitchToTryIt?: () => void;
 }
 
-export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
+export function LoginForm({ onClose, onSwitchToTryIt }: LoginFormProps) {
   const router = useRouter();
   const { login, isLoading, error: authError, clearError } = useAuth();
 
@@ -164,10 +164,10 @@ export function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
         <div className="w-full text-center mt-2">
           <button
             type="button"
-            onClick={onSwitchToRegister}
+            onClick={onSwitchToTryIt}
             className="text-[13px] text-primary-500 hover:text-primary-600 font-medium"
           >
-            ¿No tienes cuenta? Regístrate como padre
+            ¿Quieres probar AlphaKids? Pruébalo ya
           </button>
         </div>
 
