@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify, errors as joseErrors } from 'jose';
 
 interface JwtPayload {
   sub: string;
   email: string;
   roles: string[];
   exp: number;
+  sessionId?: string;
 }
 
 const roleRouteMap: Record<string, string> = {
@@ -32,25 +34,56 @@ const publicRoutes = [
   '/favicon.ico',
 ];
 
-function decodeToken(token: string): JwtPayload | null {
+function getJwtSecret(): Uint8Array | null {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    // Fail closed: if the secret is missing or too short, we cannot verify tokens.
+    // The function returns null and the proxy will reject every request.
+    return null;
+  }
+  return new TextEncoder().encode(secret);
+}
+
+/**
+ * Verifies the JWT signature, algorithm, and expiration against JWT_SECRET.
+ * Returns the payload only if the token is valid. Returns null otherwise.
+ *
+ * This replaces the previous decode-only path, which let any client forge a
+ * token with arbitrary roles and bypass the dashboard gating.
+ */
+async function verifyToken(token: string): Promise<JwtPayload | null> {
+  const secret = getJwtSecret();
+  if (!secret) return null;
+
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = parts[1];
-    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    const json = decodeURIComponent(
-      decoded
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    );
-    return JSON.parse(json);
-  } catch {
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256'],
+    });
+    if (
+      typeof payload.sub !== 'string' ||
+      typeof payload.email !== 'string' ||
+      !Array.isArray(payload.roles) ||
+      typeof payload.exp !== 'number'
+    ) {
+      return null;
+    }
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      roles: payload.roles as string[],
+      exp: payload.exp,
+      sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : undefined,
+    };
+  } catch (err) {
+    if (err instanceof joseErrors.JWTExpired) return null;
+    if (err instanceof joseErrors.JWTInvalid || err instanceof joseErrors.JWSInvalid) {
+      return null;
+    }
     return null;
   }
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip public and static routes
@@ -63,6 +96,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Misconfigured server: no JWT_SECRET set. Fail closed.
+  if (!getJwtSecret()) {
+    return NextResponse.redirect(new URL('/error/500', request.url));
+  }
+
   // Get token from cookie
   const token = request.cookies.get('access_token')?.value;
   if (!token) {
@@ -71,15 +109,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Decode JWT to get role
-  const payload = decodeToken(token);
+  // Verify JWT signature and expiration
+  const payload = await verifyToken(token);
   if (!payload) {
-    const loginUrl = new URL('/', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Check token expiration
-  if (payload.exp * 1000 < Date.now()) {
     const loginUrl = new URL('/', request.url);
     return NextResponse.redirect(loginUrl);
   }

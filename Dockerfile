@@ -1,7 +1,7 @@
 # ---- Build Stage ----
 FROM node:22-slim AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN pnpm run build
 # ---- Production Stage ----
 FROM node:22-slim AS runner
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 

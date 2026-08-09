@@ -1,5 +1,7 @@
 # Tasks: Ajustes Frontend
 
+> ⚠️ **Phase 3 superseded by `parent-flow-refactor` change (in progress).** Phase 3 was never actually applied in code — the new flow replaces what Phase 3 was meant to do (no `padre` in admin UserForm, no RegisterParentForm, no `Crea tu cuenta` button in LeadForm). Phases 1, 2, 4, 5 remain done.
+
 ## Review Workload Forecast
 
 | Field | Value |
@@ -45,10 +47,12 @@ Chain strategy: pending
 
 ## Phase 3: Eliminate Parent Creation (4 files)
 
-- [x] 3.1 `features/admin/components/UserForm.tsx` — Remove `'parent'` from `availableRoles` (L14), update `needsInstitution` to exclude `'parent'` (L15-16)
-- [x] 3.2 `features/landing/components/LeadForm.tsx` — Remove `padre` entry from `ROLES` array (L6-10); remove entire `role === 'padre'` branch, leaving only the email form branch
-- [x] 3.3 `app/page.tsx` — Remove `RegisterParentForm` import (L10); remove `authModalMode === 'register'` block (L126-133)
-- [x] 3.4 `features/auth/components/RegisterParentForm.tsx` — Replace entire form with static info component: "Si eres apoderado, contacta a la institución educativa de tu hijo para obtener acceso." Keep same props interface (`onClose`, `onSwitchToLogin`)
+> ⚠️ **Superseded by `parent-flow-refactor`.** Tasks kept here for historical reference only — not implemented.
+
+- [ ] 3.1 `features/admin/components/UserForm.tsx` — Remove `'parent'` from `availableRoles` (L14), update `needsInstitution` to exclude `'parent'` (L15-16)
+- [ ] 3.2 `features/landing/components/LeadForm.tsx` — Remove `padre` entry from `ROLES` array (L6-10); remove entire `role === 'padre'` branch, leaving only the email form branch
+- [ ] 3.3 `app/page.tsx` — Remove `RegisterParentForm` import (L10); remove `authModalMode === 'register'` block (L126-133)
+- [ ] 3.4 `features/auth/components/RegisterParentForm.tsx` — Replace entire form with static info component: "Si eres apoderado, contacta a la institución educativa de tu hijo para obtener acceso." Keep same props interface (`onClose`, `onSwitchToLogin`)
 
 ## Phase 4: Audio Recording in WordForm (1 file)
 

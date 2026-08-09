@@ -74,6 +74,8 @@ All landing page components SHALL use standard Spanish (tuteo) verb forms. Voseo
 
 ### R13: Parent Lead Form Action Removed
 
+> ⚠️ **Superseded by `parent-flow-refactor` change.** The new flow has padre submitting email + name only, then receiving a QR for the KMP app download — different from what R13 originally specified.
+
 The LeadForm SHALL NOT show a "Crea tu cuenta" button for the `padre` role. When role is `padre`, the form SHALL show the same email input + submit button as other roles instead of the registration redirect.
 
 #### Scenario: Parent sees email form
