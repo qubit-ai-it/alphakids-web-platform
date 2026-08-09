@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '@/shared/lib/api-client';
@@ -40,26 +40,10 @@ function classifyError(err: unknown): { message: string } {
 }
 
 export default function LeadForm() {
-  const [count, setCount] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const source = detectSource();
-
-  /** Fetch lead count on mount (legacy local endpoint — deleted in Fase 2). */
-  const fetchCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/leads');
-      const data = await res.json();
-      setCount(data.count);
-    } catch {
-      // silent — counter is decorative
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCount();
-  }, [fetchCount]);
 
   const {
     register,
@@ -86,29 +70,6 @@ export default function LeadForm() {
   return (
     <section id="lead-form" className="bg-secondary-50 py-[80px] md:py-[100px]">
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
-        {/* ─── Counter Card (legacy local endpoint — removed in Fase 2) ─── */}
-        {count !== null && (
-          <div className="card py-[32px] md:py-[40px] px-[32px]">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-[16px] mb-[12px]">
-                <span className="text-[72px] md:text-[96px] font-extrabold text-primary-500 leading-none">
-                  {count}
-                </span>
-                <span className="text-[32px] md:text-[40px] font-extrabold text-secondary-900">
-                  {count === 1 ? 'Familia' : 'Familias'}
-                </span>
-                <span className="material-symbols-outlined text-[40px] md:text-[48px] text-primary-400">
-                  group
-                </span>
-              </div>
-              <p className="text-[18px] md:text-[22px] text-secondary-600 font-medium">
-                que prefieren{' '}
-                <span className="font-semibold text-primary-500">AlphaKids</span>
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* ─── Form Card ─── */}
         <div className="card text-center py-[60px]">
           <span className="material-symbols-outlined mb-[16px] text-[56px] text-primary-500">
