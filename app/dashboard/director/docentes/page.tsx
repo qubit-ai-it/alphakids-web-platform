@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Table } from '@/shared/components/ui/Table';
+import { Pagination } from '@/shared/components/ui/Pagination';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
@@ -18,6 +19,8 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { User, InstitutionMember, Section } from '@/shared/lib/types';
+
+const PAGE_SIZE = 20;
 
 interface TeacherRow extends User {
   member?: InstitutionMember | null;
@@ -39,6 +42,7 @@ export default function DirectorDocentesPage() {
   const [editingTeacher, setEditingTeacher] = useState<TeacherRow | null>(null);
   const [viewingTeacher, setViewingTeacher] = useState<TeacherRow | null>(null);
   const [filterText, setFilterText] = useState('');
+  const [page, setPage] = useState(0);
   const initialized = useRef(false);
 
   const fetchTeachers = useCallback(async () => {
@@ -46,31 +50,58 @@ export default function DirectorDocentesPage() {
     if (!id) return;
     setIsLoading(true); setError(null);
     try {
-      const members = await membersService.getAll(id);
+      // Members, users, grades, sections are loaded fully because the page builds
+      // the teacher list by joining these datasets client-side. The intermediate
+      // queries are not paginated; only the rendered teacher list is paginated.
+      const [members, gradesData, usersArr] = await Promise.all([
+        membersService.getAll(id, { take: 9999 }),
+        gradesService.getAll(id, { take: 9999 }),
+        usersService.getAll({ take: 9999 }),
+      ]);
+
       const teacherMembers = members.filter((m) => m.role?.name === 'teacher' && !m.leftAt);
       const userIds = [...new Set(teacherMembers.map((m) => m.userId))];
       if (userIds.length === 0) { setTeachers([]); setIsLoading(false); return; }
 
-      const gradesData = await gradesService.getAll(id);
-      const allSections: Section[] = [];
-      for (const g of gradesData) {
-        try { const s = await sectionsService.getAll(id, g.id); allSections.push(...s.map((sec) => ({ ...sec, gradeId: g.id }))); } catch {}
-      }
+      // Parallel fetch: one request per grade instead of sequential.
+      const sectionArrays = await Promise.all(
+        gradesData.map(async (g) => {
+          try {
+            const s = await sectionsService.getAll(id, g.id, { take: 9999 });
+            return s.map((sec) => ({ ...sec, gradeId: g.id }));
+          } catch {
+            return [];
+          }
+        }),
+      );
+      const allSections: Section[] = sectionArrays.flat();
+
+      // Parallel fetch: one request per section instead of sequential.
+      const sectionTeacherAssignments = await Promise.all(
+        allSections.map(async (s) => {
+          try {
+            const assigned = await sectionTeachersService.getAll(
+              id,
+              (s as Section & { gradeId: string }).gradeId,
+              s.id,
+            );
+            return { section: s, assigned };
+          } catch {
+            return { section: s, assigned: [] };
+          }
+        }),
+      );
 
       const sectionTeacherMap = new Map<string, { sectionName: string; sectionId: string; gradeId: string }>();
-      for (const s of allSections) {
-        try {
-          const assigned = await sectionTeachersService.getAll(id, (s as Section & { gradeId: string }).gradeId, s.id);
-          for (const t of assigned) {
-            const tAny = t as unknown as Record<string, unknown>;
-            const member = tAny.member as Record<string, unknown> | undefined;
-            const userId = (member?.userId as string) ?? (member?.user as Record<string, unknown>)?.id as string;
-            if (userId) sectionTeacherMap.set(userId, { sectionName: s.name, sectionId: s.id, gradeId: (s as Section & { gradeId: string }).gradeId });
-          }
-        } catch {}
+      for (const { section: s, assigned } of sectionTeacherAssignments) {
+        for (const t of assigned) {
+          const tAny = t as unknown as Record<string, unknown>;
+          const member = tAny.member as Record<string, unknown> | undefined;
+          const userId = (member?.userId as string) ?? (member?.user as Record<string, unknown>)?.id as string;
+          if (userId) sectionTeacherMap.set(userId, { sectionName: s.name, sectionId: s.id, gradeId: (s as Section & { gradeId: string }).gradeId });
+        }
       }
 
-      const usersArr = await usersService.getAll();
       const usersMap = new Map(usersArr.map((u) => [u.id, u] as [string, User]));
       setTeachers(teacherMembers.map((m) => {
         const u = usersMap.get(m.userId);
@@ -106,6 +137,20 @@ export default function DirectorDocentesPage() {
         (t.sectionName ?? '').toLowerCase().includes(filterText.toLowerCase())
       )
     : teachers;
+
+  // Client-side pagination of the joined teacher list — the join happens in
+  // fetchTeachers(), so server-side pagination of the underlying endpoints is
+  // not possible without a denormalized backend endpoint.
+  const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pagedTeachers = useMemo(
+    () => filteredTeachers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE),
+    [filteredTeachers, safePage],
+  );
+
+  const handlePageChange = (next: number) => {
+    setPage(next);
+  };
 
   const handleCreate = () => setShowForm(true);
 
@@ -255,7 +300,7 @@ export default function DirectorDocentesPage() {
           <input
             type="text"
             value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
+            onChange={(e) => { setFilterText(e.target.value); setPage(0); }}
             placeholder="Buscar por nombre, correo o sección..."
             className="input"
           />
@@ -274,13 +319,20 @@ export default function DirectorDocentesPage() {
 
       <Table<TeacherRow>
         columns={columns}
-        data={filteredTeachers}
+        data={pagedTeachers}
         keyExtractor={(t) => t.id}
         isLoading={isLoading}
         error={error}
         onRetry={fetchTeachers}
         emptyMessage={filterText ? 'No hay docentes que coincidan con el filtro.' : 'No hay docentes en esta institución.'}
-        pageSize={10}
+      />
+
+      <Pagination
+        page={safePage}
+        pageSize={PAGE_SIZE}
+        totalItems={filteredTeachers.length}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
       />
 
       {showForm && <TeacherForm onSubmit={handleCreateSubmit} onCancel={() => setShowForm(false)} isLoading={formLoading} />}
