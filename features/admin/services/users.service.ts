@@ -16,8 +16,8 @@ export interface UpdateUserInput {
 }
 
 export const usersService = {
-  async getAll(): Promise<User[]> {
-    return api.get<User[]>('/users', { take: 9999 });
+  async getAll(params?: { skip?: number; take?: number }): Promise<User[]> {
+    return api.get<User[]>('/users', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   async getById(id: string): Promise<User> {

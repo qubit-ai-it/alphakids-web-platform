@@ -15,13 +15,13 @@ export interface UpdateWordAssignmentInput {
 }
 
 export const wordAssignmentsService = {
-  async getAll(): Promise<WordAssignment[]> {
-    return api.get<WordAssignment[]>('/word-assignments', { take: 9999 });
+  async getAll(params?: { skip?: number; take?: number }): Promise<WordAssignment[]> {
+    return api.get<WordAssignment[]>('/word-assignments', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   /** Teacher-scoped: only assignments for students in the teacher's sections */
-  async getTeacherAssignments(): Promise<WordAssignment[]> {
-    return api.get<WordAssignment[]>('/teacher/word-assignments');
+  async getTeacherAssignments(params?: { skip?: number; take?: number }): Promise<WordAssignment[]> {
+    return api.get<WordAssignment[]>('/teacher/word-assignments', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   async getById(id: string): Promise<WordAssignment> {

@@ -40,7 +40,7 @@ export default function AdminInstitucionesPage() {
     setIsLoading(true);
     setError(null);
     institutionsService
-      .getAll()
+      .getAll({ take: 9999 })
       .then((data) => {
         setInstitutions(data);
         setIsLoading(false);

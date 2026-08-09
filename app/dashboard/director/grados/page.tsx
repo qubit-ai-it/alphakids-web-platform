@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Table } from '@/shared/components/ui/Table';
+import { Pagination } from '@/shared/components/ui/Pagination';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -12,6 +13,8 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { Grade } from '@/shared/lib/types';
+
+const PAGE_SIZE = 20;
 
 export default function DirectorGradosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -30,29 +33,45 @@ export default function DirectorGradosPage() {
   const [viewingGrade, setViewingGrade] = useState<Grade | null>(null);
 
   const [filterText, setFilterText] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const initialized = useRef(false);
 
-  const refetch = useCallback(() => {
-    const id = getInstitutionId();
-    if (!id) return;
-    setIsLoading(true);
-    setError(null);
-    gradesService.getAll(id).then((data) => { setGrades(data); setIsLoading(false); })
-      .catch((err: Error) => {
-        const { title, message } = getErrorMessage(err);
-        setError(title ? `${title}: ${message}` : 'Error al cargar grados');
-        setIsLoading(false);
-      });
-  }, []);
+  const refetch = useCallback(
+    (pageToLoad: number = page) => {
+      const id = getInstitutionId();
+      if (!id) return;
+      setIsLoading(true);
+      setError(null);
+      gradesService
+        .getAll(id, { skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE + 1 })
+        .then((data) => {
+          setHasNextPage(data.length > PAGE_SIZE);
+          setGrades(data.slice(0, PAGE_SIZE));
+          setIsLoading(false);
+        })
+        .catch((err: Error) => {
+          const { title, message } = getErrorMessage(err);
+          setError(title ? `${title}: ${message}` : 'Error al cargar grados');
+          setIsLoading(false);
+        });
+    },
+    [page],
+  );
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     const id = getInstitutionId();
     setInstitutionId(id ?? null);
-    if (id) { void Promise.resolve().then(() => refetch()); }
+    if (id) { void Promise.resolve().then(() => refetch(0)); }
   }, [refetch]);
+
+  const handlePageChange = (next: number) => {
+    setPage(next);
+    refetch(next);
+  };
 
   const filteredGrades = filterText
     ? grades.filter((g) => g.name.toLowerCase().includes(filterText.toLowerCase()))
@@ -185,9 +204,16 @@ export default function DirectorGradosPage() {
         keyExtractor={(g) => g.id}
         isLoading={isLoading}
         error={error}
-        onRetry={refetch}
+        onRetry={() => refetch(page)}
         emptyMessage={filterText ? 'No hay grados que coincidan con el filtro.' : 'No hay grados registrados.'}
-        pageSize={10}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={hasNextPage ? (page + 1) * PAGE_SIZE + 1 : page * PAGE_SIZE + filteredGrades.length}
+        totalPages={hasNextPage ? page + 2 : page + 1}
+        onPageChange={handlePageChange}
       />
 
       {showForm && <GradeForm onSubmit={handleFormSubmit} onCancel={() => { setShowForm(false); setEditingGrade(null); }} isLoading={formLoading} grade={editingGrade} />}

@@ -12,10 +12,13 @@ export interface UpdateMemberInput {
 }
 
 export const membersService = {
-  async getAll(institutionId: string): Promise<InstitutionMember[]> {
+  async getAll(
+    institutionId: string,
+    params?: { skip?: number; take?: number },
+  ): Promise<InstitutionMember[]> {
     return api.get<InstitutionMember[]>(
       `/institutions/${institutionId}/members`,
-      { take: 9999 },
+      { skip: params?.skip, take: params?.take ?? 20 },
     );
   },
 

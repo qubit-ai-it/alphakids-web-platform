@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Table } from '@/shared/components/ui/Table';
+import { Pagination } from '@/shared/components/ui/Pagination';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Modal } from '@/shared/components/ui/Modal';
 import { Button } from '@/shared/components/ui/Button';
@@ -13,6 +14,8 @@ import { getInstitutionId } from '@/shared/lib/jwt';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import type { Student, Grade, Section } from '@/shared/lib/types';
+
+const PAGE_SIZE = 20;
 
 export default function DirectorAlumnosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -28,6 +31,8 @@ export default function DirectorAlumnosPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [filterText, setFilterText] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const initialized = useRef(false);
   const { addToast } = useToast();
   
@@ -50,18 +55,31 @@ export default function DirectorAlumnosPage() {
     else if (tabParam === 'pendientes') setFilterVerification('PENDING');
   }, [tabParam, verificationParam]);
 
-  const refetch = useCallback(() => {
-    const id = getInstitutionId();
-    if (!id) return;
-    setIsLoading(true); setError(null);
-    studentsService.getDirectorStudents().then((data) => {
-      setStudents(data);
-      setIsLoading(false);
-    }).catch((err: Error) => {
-      setError(err.message || 'Error al cargar alumnos');
-      setIsLoading(false);
-    });
-  }, []);
+  const refetch = useCallback(
+    (pageToLoad: number = page) => {
+      const id = getInstitutionId();
+      if (!id) return;
+      setIsLoading(true);
+      setError(null);
+      studentsService
+        .getDirectorStudents({ skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE + 1 })
+        .then((data) => {
+          setHasNextPage(data.length > PAGE_SIZE);
+          setStudents(data.slice(0, PAGE_SIZE));
+          setIsLoading(false);
+        })
+        .catch((err: Error) => {
+          setError(err.message || 'Error al cargar alumnos');
+          setIsLoading(false);
+        });
+    },
+    [page],
+  );
+
+  const handlePageChange = (next: number) => {
+    setPage(next);
+    refetch(next);
+  };
 
   const fetchGrades = useCallback(() => {
     const id = getInstitutionId();
@@ -81,7 +99,7 @@ export default function DirectorAlumnosPage() {
     const id = getInstitutionId();
     setInstitutionId(id ?? null);
     if (id) {
-      void Promise.resolve().then(() => refetch());
+      void Promise.resolve().then(() => refetch(0));
       fetchGrades();
     }
   }, [refetch, fetchGrades]);
@@ -210,14 +228,14 @@ export default function DirectorAlumnosPage() {
           <input
             type="text"
             value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
+            onChange={(e) => { setFilterText(e.target.value); setPage(0); }}
             placeholder="Buscar por nombre..."
             className="input"
           />
         </div>
         <div className="flex items-center gap-[8px]">
           <label className="text-[13px] font-medium text-secondary-600">Estado de Cuenta:</label>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input max-w-[150px]">
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }} className="input max-w-[150px]">
             <option value="">Todos</option>
             <option value="active">Activo</option>
             <option value="inactive">Inactivo</option>
@@ -260,9 +278,16 @@ export default function DirectorAlumnosPage() {
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
         error={error}
-        onRetry={refetch}
+        onRetry={() => refetch(page)}
         emptyMessage={filterText || filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos registrados en esta institución.'}
-        pageSize={10}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalItems={hasNextPage ? (page + 1) * PAGE_SIZE + 1 : page * PAGE_SIZE + filteredStudents.length}
+        totalPages={hasNextPage ? page + 2 : page + 1}
+        onPageChange={handlePageChange}
       />
 
       {viewingStudent && (

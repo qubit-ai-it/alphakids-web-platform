@@ -34,7 +34,7 @@ export default function DocenteAlumnosPage() {
     } catch {
       // Fallback: all students + filter client-side by sectionIds
       try {
-        const data = await studentsService.getAll();
+        const data = await studentsService.getAll({ take: 9999 });
         setStudents(data.filter((s) => sectionIds.includes(s.sectionId ?? '')));
         setUsingFallback(true);
       } catch (err) {

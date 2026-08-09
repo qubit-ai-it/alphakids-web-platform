@@ -12,10 +12,14 @@ export interface UpdateSectionInput {
 }
 
 export const sectionsService = {
-  async getAll(institutionId: string, gradeId: string): Promise<Section[]> {
+  async getAll(
+    institutionId: string,
+    gradeId: string,
+    params?: { skip?: number; take?: number },
+  ): Promise<Section[]> {
     return api.get<Section[]>(
       `/institutions/${institutionId}/grades/${gradeId}/sections`,
-      { take: 9999 },
+      { skip: params?.skip, take: params?.take ?? 20 },
     );
   },
 

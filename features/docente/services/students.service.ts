@@ -24,18 +24,18 @@ export interface UpdateStudentInput {
 }
 
 export const studentsService = {
-  async getAll(): Promise<Student[]> {
-    return api.get<Student[]>('/students', { take: 9999 });
+  async getAll(params?: { skip?: number; take?: number }): Promise<Student[]> {
+    return api.get<Student[]>('/students', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   /** Teacher-scoped: only students from the teacher's sections */
-  async getTeacherStudents(): Promise<Student[]> {
-    return api.get<Student[]>('/teacher/students');
+  async getTeacherStudents(params?: { skip?: number; take?: number }): Promise<Student[]> {
+    return api.get<Student[]>('/teacher/students', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   /** Director-scoped: students from the director's institutions */
-  async getDirectorStudents(): Promise<Student[]> {
-    return api.get<Student[]>('/director/students');
+  async getDirectorStudents(params?: { skip?: number; take?: number }): Promise<Student[]> {
+    return api.get<Student[]>('/director/students', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   async getById(id: string): Promise<Student> {

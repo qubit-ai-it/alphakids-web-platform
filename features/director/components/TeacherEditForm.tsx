@@ -35,12 +35,12 @@ export function TeacherEditForm({
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    gradesService.getAll(institutionId).then(setGrades).catch(() => {});
+    gradesService.getAll(institutionId, { take: 9999 }).then(setGrades).catch(() => {});
   }, [institutionId]);
 
   useEffect(() => {
     if (!selectedGradeId) return;
-    sectionsService.getAll(institutionId, selectedGradeId).then(setSections).catch(() => {});
+    sectionsService.getAll(institutionId, selectedGradeId, { take: 9999 }).then(setSections).catch(() => {});
   }, [institutionId, selectedGradeId]);
 
   const handleSubmit = () => {

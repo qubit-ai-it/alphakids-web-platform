@@ -56,7 +56,7 @@ export default function DocenteAsignacionesPage() {
     } catch {
       // Fallback: old approach (will likely also fail for teacher role)
       try {
-        const data = await wordAssignmentsService.getAll();
+        const data = await wordAssignmentsService.getAll({ take: 9999 });
         setAssignments(data);
         setUsingFallback(true);
       } catch (err) {

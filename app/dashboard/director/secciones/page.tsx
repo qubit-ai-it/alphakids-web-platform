@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Table } from '@/shared/components/ui/Table';
+import { Pagination } from '@/shared/components/ui/Pagination';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmDialog } from '@/shared/components/ui/ConfirmDialog';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -13,6 +14,8 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { Section, Grade } from '@/shared/lib/types';
+
+const PAGE_SIZE = 20;
 
 export default function DirectorSeccionesPage() {
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -28,19 +31,31 @@ export default function DirectorSeccionesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [viewingSection, setViewingSection] = useState<Section | null>(null);
   const [filterText, setFilterText] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const initialized = useRef(false);
 
-  const fetchSections = useCallback((gradeId: string) => {
-    const id = getInstitutionId();
-    if (!id) return;
-    setIsLoading(true); setError(null);
-    sectionsService.getAll(id, gradeId).then((data) => { setSections(data); setIsLoading(false); })
-      .catch((err: Error) => {
-        const { title, message } = getErrorMessage(err);
-        setError(title ? `${title}: ${message}` : 'Error al cargar secciones');
-        setIsLoading(false);
-      });
-  }, []);
+  const fetchSections = useCallback(
+    (gradeId: string, pageToLoad: number = 0) => {
+      const id = getInstitutionId();
+      if (!id) return;
+      setIsLoading(true);
+      setError(null);
+      sectionsService
+        .getAll(id, gradeId, { skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE + 1 })
+        .then((data) => {
+          setHasNextPage(data.length > PAGE_SIZE);
+          setSections(data.slice(0, PAGE_SIZE));
+          setIsLoading(false);
+        })
+        .catch((err: Error) => {
+          const { title, message } = getErrorMessage(err);
+          setError(title ? `${title}: ${message}` : 'Error al cargar secciones');
+          setIsLoading(false);
+        });
+    },
+    [],
+  );
 
   const fetchGrades = useCallback(() => {
     const id = getInstitutionId();
@@ -58,8 +73,15 @@ export default function DirectorSeccionesPage() {
   const handleGradeChange = (gradeId: string) => {
     setSelectedGradeId(gradeId);
     setFilterText('');
-    if (gradeId) fetchSections(gradeId);
+    setPage(0);
+    setHasNextPage(false);
+    if (gradeId) fetchSections(gradeId, 0);
     else setSections([]);
+  };
+
+  const handlePageChange = (next: number) => {
+    setPage(next);
+    fetchSections(selectedGradeId, next);
   };
 
   const filteredSections = filterText
@@ -93,7 +115,7 @@ export default function DirectorSeccionesPage() {
       setShowForm(false);
       setEditingSection(null);
       addToast('success', editingSection ? 'Sección actualizada' : 'Sección creada');
-      fetchSections(selectedGradeId);
+      fetchSections(selectedGradeId, page);
       fetchGrades();
     } catch (err) {
       const { title, message } = getErrorMessage(err);
@@ -111,7 +133,7 @@ export default function DirectorSeccionesPage() {
       await sectionsService.delete(id, selectedGradeId, deleteTarget.id);
       setDeleteTarget(null);
       addToast('success', 'Sección eliminada');
-      fetchSections(selectedGradeId);
+      fetchSections(selectedGradeId, page);
       fetchGrades();
     } catch (err) {
       const { title, message } = getErrorMessage(err);
@@ -183,16 +205,24 @@ export default function DirectorSeccionesPage() {
       {!selectedGradeId ? (
         <div className="card"><div className="empty-state"><p className="empty-state-title">Selecciona un grado</p><p className="empty-state-description">Elige un grado para ver sus secciones.</p></div></div>
       ) : (
-        <Table<Section>
-          columns={columns}
-          data={filteredSections}
-          keyExtractor={(s) => s.id}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => fetchSections(selectedGradeId)}
-          emptyMessage={filterText ? 'No hay secciones que coincidan con el filtro.' : 'No hay secciones en este grado.'}
-          pageSize={10}
-        />
+        <>
+          <Table<Section>
+            columns={columns}
+            data={filteredSections}
+            keyExtractor={(s) => s.id}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => fetchSections(selectedGradeId, page)}
+            emptyMessage={filterText ? 'No hay secciones que coincidan con el filtro.' : 'No hay secciones en este grado.'}
+          />
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalItems={hasNextPage ? (page + 1) * PAGE_SIZE + 1 : page * PAGE_SIZE + filteredSections.length}
+            totalPages={hasNextPage ? page + 2 : page + 1}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
 
       {showForm && <SectionForm onSubmit={handleFormSubmit} onCancel={() => { setShowForm(false); setEditingSection(null); }} isLoading={formLoading} section={editingSection} />}

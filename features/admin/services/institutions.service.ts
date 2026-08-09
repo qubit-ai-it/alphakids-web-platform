@@ -22,8 +22,8 @@ export interface UpdateInstitutionInput {
 }
 
 export const institutionsService = {
-  async getAll(): Promise<Institution[]> {
-    return api.get<Institution[]>('/institutions', { take: 9999 });
+  async getAll(params?: { skip?: number; take?: number }): Promise<Institution[]> {
+    return api.get<Institution[]>('/institutions', { skip: params?.skip, take: params?.take ?? 20 });
   },
 
   async getById(id: string): Promise<Institution> {

@@ -60,11 +60,11 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    wordsService.getAll().then(setWords).catch(() => {});
+    wordsService.getAll({ take: 9999 }).then(setWords).catch(() => {});
     // Usar endpoint del docente (misma fuente que /dashboard/docente/alumnos).
     // getAll()/students + filtro JWT fallaba en silencio para rol teacher.
     studentsService
-      .getTeacherStudents()
+      .getTeacherStudents({ take: 9999 })
       .then(setStudents)
       .catch(async () => {
         const sectionIds = getTeacherSectionIds();
@@ -73,7 +73,7 @@ export function WordAssignmentForm({ onSubmit, onCancel, isLoading, assignment }
           return;
         }
         try {
-          const data = await studentsService.getAll();
+          const data = await studentsService.getAll({ take: 9999 });
           setStudents(data.filter((s) => sectionIds.includes(s.sectionId ?? '')));
         } catch {
           setStudents([]);

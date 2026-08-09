@@ -133,7 +133,7 @@ function CreateUserForm({
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    institutionsService.getAll().then(setInstitutions).catch(() => {});
+    institutionsService.getAll({ take: 9999 }).then(setInstitutions).catch(() => {});
   }, []);
 
   const onInvalid = () => {
@@ -333,7 +333,7 @@ function EditUserForm({
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    institutionsService.getAll().then(setInstitutions).catch(() => {});
+    institutionsService.getAll({ take: 9999 }).then(setInstitutions).catch(() => {});
   }, []);
 
   const onInvalid = () => {

@@ -66,12 +66,12 @@ export function TeacherForm({ onSubmit, onCancel, isLoading }: TeacherFormProps)
   useEffect(() => {
     if (initialized.current || !institutionId) return;
     initialized.current = true;
-    gradesService.getAll(institutionId).then(setGrades).catch(() => {});
+    gradesService.getAll(institutionId, { take: 9999 }).then(setGrades).catch(() => {});
   }, [institutionId]);
 
   useEffect(() => {
     if (!institutionId || !selectedGradeId) return;
-    sectionsService.getAll(institutionId, selectedGradeId).then(setSections).catch(() => {});
+    sectionsService.getAll(institutionId, selectedGradeId, { take: 9999 }).then(setSections).catch(() => {});
   }, [institutionId, selectedGradeId]);
 
   const [selectedSectionId, setSelectedSectionId] = useState('');

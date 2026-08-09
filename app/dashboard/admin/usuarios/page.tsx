@@ -52,12 +52,12 @@ export default function AdminUsuariosPage() {
     setError(null);
     try {
       const [usersData, institutions] = await Promise.all([
-        usersService.getAll(),
-        institutionsService.getAll(),
+        usersService.getAll({ take: 9999 }),
+        institutionsService.getAll({ take: 9999 }),
       ]);
 
       const membersPromises = institutions.map((inst) =>
-        membersService.getAll(inst.id).catch(() => [] as InstitutionMember[]),
+        membersService.getAll(inst.id, { take: 9999 }).catch(() => [] as InstitutionMember[]),
       );
       const allMemberships = (await Promise.all(membersPromises)).flat();
 
