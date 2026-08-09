@@ -1,40 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import useSWR from 'swr';
 import { api, BASE_URL } from '@/shared/lib/api-client';
-import { Notification, NotificationsResponse } from '@/shared/lib/types';
+import { NotificationsResponse } from '@/shared/lib/types';
 import { useAuth } from './useAuth';
 import { authService } from '@/features/auth/services/auth.service';
 
 export function useNotifications() {
   const { isAuthenticated } = useAuth();
-  
+  const token = authService.getToken();
+
   const fetcher = (url: string) => api.get<NotificationsResponse>(url);
-  
+
   const { data, error, mutate } = useSWR<NotificationsResponse>(
     isAuthenticated ? '/notifications' : null,
-    fetcher
+    fetcher,
+    { refreshInterval: 0, revalidateOnFocus: true }
   );
 
-  const [realtimeNotifications, setRealtimeNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Sync initial unread count
   useEffect(() => {
-    if (data) {
-      setUnreadCount(data.unreadCount);
-    }
-  }, [data]);
-
-  // Connect to SSE
-  useEffect(() => {
-    const token = authService.getToken();
     if (!isAuthenticated || !token) return;
 
-    // Use EventSource for SSE. We must append token manually since EventSource doesn't support headers natively in browser
-    // Wait, since we are sending token in header normally, EventSource native won't work easily with JWT in headers.
-    // However, a simple workaround is sending the token in a query param: ?token=...
-    // Let's assume we can do that or we use a custom fetch-based SSE if needed.
-    // For now, let's use standard EventSource.
+    // EventSource cannot send authorization headers, so the token remains in the query string for now.
     const url = `${BASE_URL}/notifications/stream?token=${token}`;
     const eventSource = new EventSource(url, { withCredentials: true });
 
@@ -42,8 +28,30 @@ export function useNotifications() {
       try {
         const parsed = JSON.parse(event.data);
         if (parsed.type === 'STUDENT_PENDING' && parsed.notification) {
-          setRealtimeNotifications(prev => [parsed.notification, ...prev]);
-          setUnreadCount(prev => prev + 1);
+          mutate((current) => {
+            const notification = parsed.notification;
+
+            if (!current) {
+              return {
+                items: [notification],
+                unreadCount: 1,
+                total: 1,
+              };
+            }
+
+            const alreadyExists = current.items.some((item) => item.id === notification.id);
+            const notifications = [notification, ...current.items];
+            const uniqueNotifications = Array.from(
+              new Map(notifications.map((item) => [item.id, item])).values()
+            );
+
+            return {
+              ...current,
+              items: uniqueNotifications,
+              unreadCount: alreadyExists ? current.unreadCount : current.unreadCount + 1,
+              total: alreadyExists ? current.total : current.total + 1,
+            };
+          }, { revalidate: false });
         }
       } catch (e) {
         console.error('Failed to parse SSE', e);
@@ -55,48 +63,55 @@ export function useNotifications() {
       eventSource.close();
     };
 
-    return () => {
-      eventSource.close();
-    };
-  }, [isAuthenticated]);
-
-  const allNotifications = [...realtimeNotifications, ...(data?.items || [])];
-  // Remove duplicates based on ID (if any)
-  const uniqueNotifications = Array.from(new Map(allNotifications.map(item => [item.id, item])).values());
-  // Sort by date desc
-  uniqueNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return () => eventSource.close();
+  }, [isAuthenticated, token, mutate]);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
-      // Optimizacion UI (Optimistic UI)
-      setRealtimeNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
+      mutate((current) => {
+        if (!current) return current;
+        const notification = current.items.find((item) => item.id === id);
+        if (!notification || notification.isRead) return current;
+
+        return {
+          ...current,
+          items: current.items.map((item) => item.id === id ? { ...item, isRead: true } : item),
+          unreadCount: Math.max(0, current.unreadCount - 1),
+        };
+      }, { revalidate: false });
+
       await api.patch(`/notifications/${id}/read`);
-      mutate();
+      await mutate();
     } catch (err) {
       console.error('Failed to mark as read', err);
-      // Revertir (idealmente)
-      mutate();
+      await mutate();
     }
   }, [mutate]);
 
   const markAllAsRead = useCallback(async () => {
+    mutate((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        items: current.items.map((item) => ({ ...item, isRead: true })),
+        unreadCount: 0,
+      };
+    }, { revalidate: false });
+
     try {
-      setRealtimeNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-      
       await api.patch('/notifications/read-all');
-      mutate();
+      await mutate();
     } catch (err) {
       console.error('Failed to mark all as read', err);
-      mutate();
+      await mutate();
     }
   }, [mutate]);
 
+  const notifications = data?.items ?? [];
+
   return {
-    notifications: uniqueNotifications,
-    unreadCount,
+    notifications,
+    unreadCount: data?.unreadCount ?? 0,
     isLoading: !error && !data,
     isError: error,
     markAsRead,
