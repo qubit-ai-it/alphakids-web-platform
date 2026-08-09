@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-
-const ROLES = [
-  { value: 'padre', label: 'Padre / Madre de familia' },
-  { value: 'docente', label: 'Docente' },
-  { value: 'director', label: 'Director / Coordinador' },
-  { value: 'otro', label: 'Otro' },
-] as const;
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from '@/shared/lib/api-client';
+import { leadSchema, type LeadFormData } from '@/features/landing/schema/lead.schema';
+import { QrDownloadModal } from '@/features/landing/components/QrDownloadModal';
 
 function detectSource(): string {
   if (typeof window === 'undefined') return 'directo';
@@ -22,27 +20,40 @@ function detectSource(): string {
   return 'directo';
 }
 
-interface LeadFormProps {
-  onOpenRegister?: () => void;
+interface ApiFailure {
+  status?: number;
+  message?: string;
 }
 
-export default function LeadForm({ onOpenRegister }: LeadFormProps) {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('padre');
+function classifyError(err: unknown): { message: string } {
+  const failure = err as ApiFailure;
+  if (failure?.status === 409) {
+    return { message: 'Este correo ya está registrado. Revisa tu casilla para continuar.' };
+  }
+  if (failure?.status === 429) {
+    return { message: 'Demasiados intentos. Prueba de nuevo en unos minutos.' };
+  }
+  if (typeof failure?.status === 'number' && failure.status >= 400 && failure.status < 500) {
+    return { message: 'Revisa los datos ingresados e intenta de nuevo.' };
+  }
+  return { message: 'Algo salió mal. ¿Puedes intentar de nuevo?' };
+}
+
+export default function LeadForm() {
   const [count, setCount] = useState<number | null>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const source = detectSource();
 
-  /** Fetch lead count on mount */
+  /** Fetch lead count on mount (legacy local endpoint — deleted in Fase 2). */
   const fetchCount = useCallback(async () => {
     try {
       const res = await fetch('/api/leads');
       const data = await res.json();
       setCount(data.count);
     } catch {
-      // silent
+      // silent — counter is decorative
     }
   }, []);
 
@@ -50,39 +61,32 @@ export default function LeadForm({ onOpenRegister }: LeadFormProps) {
     fetchCount();
   }, [fetchCount]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (!trimmed) return;
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<LeadFormData>({
+    resolver: zodResolver(leadSchema),
+    mode: 'onSubmit',
+    defaultValues: { name: '', email: '' },
+  });
 
-    setStatus('loading');
-
+  const onSubmit = async (data: LeadFormData) => {
+    setErrorMessage(null);
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed, role, source }),
-      });
-
-      if (!res.ok) {
-        setStatus('error');
-        return;
-      }
-
-      const data = await res.json();
-      setCount(data.count);
-      setSubmittedEmail(trimmed);
-      setEmail('');
-      setStatus('success');
-    } catch {
-      setStatus('error');
+      await api.post('/api/leads', { name: data.name.trim(), email: data.email.trim() });
+      setShowQrModal(true);
+      reset({ name: '', email: '' });
+    } catch (err) {
+      setErrorMessage(classifyError(err).message);
     }
   };
 
   return (
     <section id="lead-form" className="bg-secondary-50 py-[80px] md:py-[100px]">
       <div className="mx-auto max-w-[600px] px-[24px] space-y-[24px]">
-        {/* ─── Counter Card ─── */}
+        {/* ─── Counter Card (legacy local endpoint — removed in Fase 2) ─── */}
         {count !== null && (
           <div className="card py-[32px] md:py-[40px] px-[32px]">
             <div className="text-center">
@@ -112,86 +116,119 @@ export default function LeadForm({ onOpenRegister }: LeadFormProps) {
           </span>
 
           <h2 className="mb-[8px] text-[28px] font-bold text-secondary-900 md:text-[32px]">
-            ¿Quieres probar una demo?
+            ¿Quieres probar AlphaKids?
           </h2>
 
           <p className="text-[15px] text-secondary-600 mb-[28px] max-w-[400px] mx-auto">
-            {role === 'padre'
-              ? 'Prueba nuestra aplicación registrándote aquí.'
-              : 'Déjanos tu correo y te contactamos para coordinar una demo gratuita.'}
+            Déjanos tu nombre y correo. Te escribimos para que descargues la app y
+            empieces con tus hijos.
           </p>
 
-          {/* Success feedback */}
-          {status === 'success' && (
-            <div className="mb-[24px] px-[20px] py-[12px] bg-green-50 text-green-700 rounded-[10px] text-[14px] font-medium">
-              ¡Gracias, <span className="font-bold">{submittedEmail}</span>! Te escribimos pronto.
+          {/* Inline error feedback */}
+          {errorMessage && (
+            <div className="mb-[20px] mx-auto max-w-[480px] px-[20px] py-[12px] bg-red-50 text-red-600 rounded-[10px] text-[14px] font-medium">
+              {errorMessage}
             </div>
           )}
 
-          {/* Error feedback */}
-          {status === 'error' && (
-            <div className="mb-[24px] px-[20px] py-[12px] bg-red-50 text-red-600 rounded-[10px] text-[14px] font-medium">
-              Algo salió mal. ¿Puedes intentar de nuevo?
+          <form
+            noValidate
+            onSubmit={handleSubmit(onSubmit)}
+            className="max-w-[480px] mx-auto flex flex-col gap-[16px]"
+          >
+            <div className="flex flex-col gap-[4px] text-left">
+              <input
+                type="text"
+                placeholder="Tu nombre"
+                aria-label="Tu nombre"
+                disabled={isSubmitting}
+                autoComplete="name"
+                {...register('name')}
+                className={`
+                  w-full
+                  px-[16px]
+                  py-[14px]
+                  rounded-[10px]
+                  border bg-white
+                  text-secondary-900
+                  text-[15px]
+                  outline-none
+                  focus:ring-2
+                  focus:ring-primary-500
+                  focus:border-transparent
+                  transition-all
+                  placeholder:text-secondary-400
+                  disabled:opacity-50
+                  ${errors.name ? 'border-red-500' : 'border-secondary-200'}
+                `}
+              />
+              {errors.name && (
+                <span className="text-red-600 text-[12px] px-[4px]">
+                  {errors.name.message}
+                </span>
+              )}
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="max-w-[480px] mx-auto flex flex-col gap-[16px]">
-            {/* Role selector */}
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              disabled={status === 'loading'}
-              className="w-full px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all disabled:opacity-50 appearance-none"
+            <div className="flex flex-col gap-[4px] text-left">
+              <input
+                type="email"
+                placeholder="tu@correo.com"
+                aria-label="Tu correo electrónico"
+                disabled={isSubmitting}
+                autoComplete="email"
+                {...register('email')}
+                className={`
+                  w-full
+                  px-[16px]
+                  py-[14px]
+                  rounded-[10px]
+                  border bg-white
+                  text-secondary-900
+                  text-[15px]
+                  outline-none
+                  focus:ring-2
+                  focus:ring-primary-500
+                  focus:border-transparent
+                  transition-all
+                  placeholder:text-secondary-400
+                  disabled:opacity-50
+                  ${errors.email ? 'border-red-500' : 'border-secondary-200'}
+                `}
+              />
+              {errors.email && (
+                <span className="text-red-600 text-[12px] px-[4px]">
+                  {errors.email.message}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="
+                btn
+                btn-primary
+                btn-lg
+                whitespace-nowrap
+                inline-flex
+                items-center
+                justify-center
+                gap-[8px]
+                disabled:opacity-50
+              "
             >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Action Area based on role */}
-            {role === 'padre' ? (
-              <div className="flex flex-col sm:flex-row gap-[12px] justify-center mt-2">
-                <button
-                  type="button"
-                  onClick={onOpenRegister}
-                  className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px]"
-                >
-                  <span className="material-symbols-outlined text-[20px]">person_add</span>
-                  Crea tu cuenta
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-[12px]">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@correo.com"
-                  required
-                  disabled={status === 'loading'}
-                  className="flex-1 px-[16px] py-[14px] rounded-[10px] border border-secondary-200 bg-white text-secondary-900 text-[15px] outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-secondary-400 disabled:opacity-50"
-                />
-                <button
-                  type="submit"
-                  disabled={status === 'loading' || !email.trim()}
-                  className="btn btn-primary btn-lg whitespace-nowrap inline-flex items-center justify-center gap-[8px] disabled:opacity-50"
-                >
-                  {status === 'loading' ? (
-                    <>
-                      <span className="spinner spinner-sm" />
-                      Enviando…
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[20px]">send</span>
-                      Enviar
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+              {isSubmitting ? (
+                <>
+                  <span className="spinner spinner-sm" />
+                  Enviando…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">send</span>
+                  Enviar
+                </>
+              )}
+            </button>
           </form>
 
           {/* Source badge (informational, hidden on small) */}
@@ -202,6 +239,8 @@ export default function LeadForm({ onOpenRegister }: LeadFormProps) {
           )}
         </div>
       </div>
+
+      <QrDownloadModal isOpen={showQrModal} onClose={() => setShowQrModal(false)} />
     </section>
   );
 }
