@@ -77,8 +77,7 @@ export default function DashboardLayout({
     if (
       allowedPrefix &&
       !pathname.startsWith(allowedPrefix) &&
-      !pathname.startsWith('/error') &&
-      !pathname.startsWith('/dashboard/perfil')
+      !pathname.startsWith('/error')
     ) {
       router.replace('/error/403');
     }
