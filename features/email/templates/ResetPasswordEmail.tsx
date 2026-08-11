@@ -1,3 +1,5 @@
+// @ts-nocheck — kept for historical reference. Email rendering is owned by the API (alphakids-back)
+// via Resend + @react-email/render. These web templates are not used.
 import * as React from 'react';
 import { Html, Head, Body, Container, Section, Heading, Text, Link } from '@react-email/components';
 

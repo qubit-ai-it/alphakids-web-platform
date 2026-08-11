@@ -34,5 +34,11 @@
     "typescript": "^5",
     "vitest": "^2",
     "@vitest/ui": "^2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
