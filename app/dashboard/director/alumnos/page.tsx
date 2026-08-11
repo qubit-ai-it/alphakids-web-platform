@@ -20,6 +20,7 @@ const PAGE_SIZE = 20;
 export default function DirectorAlumnosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
@@ -64,10 +65,11 @@ export default function DirectorAlumnosPage() {
       setIsLoading(true);
       setError(null);
       studentsService
-        .getDirectorStudents({ skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE + 1 })
-        .then((data) => {
-          setHasNextPage(data.length > PAGE_SIZE);
-          setStudents(data.slice(0, PAGE_SIZE));
+        .getDirectorStudents({ skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE })
+        .then(({ items, total }) => {
+          setStudents(items);
+          setTotal(total);
+          setHasNextPage(total > (pageToLoad + 1) * PAGE_SIZE);
           setIsLoading(false);
         })
         .catch((err: Error) => {
@@ -291,8 +293,8 @@ export default function DirectorAlumnosPage() {
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}
-        totalItems={hasNextPage ? (page + 1) * PAGE_SIZE + 1 : page * PAGE_SIZE + filteredStudents.length}
-        totalPages={hasNextPage ? page + 2 : page + 1}
+        totalItems={total}
+        totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
         onPageChange={handlePageChange}
       />
 
