@@ -5,6 +5,10 @@ import { useNotifications } from '@/shared/hooks/useNotifications';
 import { Icon } from '@/shared/components/ui/Icon';
 import { Button } from '@/shared/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { studentsService } from '@/features/docente/services/students.service';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { getInstitutionId } from '@/shared/lib/jwt';
 
 interface NotificationInboxProps {
   onClose: () => void;
@@ -13,7 +17,9 @@ interface NotificationInboxProps {
 export function NotificationInbox({ onClose }: NotificationInboxProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
   const [tab, setTab] = useState<'unread' | 'read'>('unread');
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const router = useRouter();
+  const { addToast } = useToast();
 
   const filteredNotifications = notifications.filter(n => tab === 'unread' ? !n.isRead : n.isRead);
 
@@ -22,6 +28,25 @@ export function NotificationInbox({ onClose }: NotificationInboxProps) {
     if (notif.type === 'STUDENT_PENDING') {
       router.push('/dashboard/director/alumnos?verification=PENDING');
       onClose();
+    }
+  };
+
+  const handleVerifyAction = async (notif: any, status: 'VERIFIED' | 'REJECTED') => {
+    const institutionId = getInstitutionId();
+    if (!institutionId || !notif.referenceId) {
+      addToast('error', 'Error', 'No se puede procesar la notificación.');
+      return;
+    }
+    setPendingAction(`${notif.id}:${status}`);
+    try {
+      await studentsService.verify(institutionId, notif.referenceId, { status });
+      await markAsRead(notif.id);
+      addToast('success', status === 'VERIFIED' ? 'Estudiante aprobado' : 'Estudiante rechazado');
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -124,6 +149,28 @@ export function NotificationInbox({ onClose }: NotificationInboxProps) {
                     <span className="text-[11px] font-medium text-secondary-400">
                       {new Date(notif.createdAt).toLocaleDateString()} a las {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
+                    {notif.type === 'STUDENT_PENDING' && (
+                      <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleVerifyAction(notif, 'VERIFIED')}
+                          disabled={pendingAction !== null}
+                          className="btn btn-sm btn-ghost text-success-600 hover:bg-success-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Aprobar"
+                        >
+                          {pendingAction === `${notif.id}:VERIFIED` ? 'Aprobando...' : 'Aprobar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleVerifyAction(notif, 'REJECTED')}
+                          disabled={pendingAction !== null}
+                          className="btn btn-sm btn-ghost text-error-600 hover:bg-error-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Rechazar"
+                        >
+                          {pendingAction === `${notif.id}:REJECTED` ? 'Rechazando...' : 'Rechazar'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

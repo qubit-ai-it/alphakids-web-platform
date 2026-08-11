@@ -23,6 +23,11 @@ export interface UpdateStudentInput {
   verificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED';
 }
 
+export interface VerifyStudentInput {
+  status: 'VERIFIED' | 'REJECTED';
+  rejectionReason?: string;
+}
+
 export const studentsService = {
   async getAll(params?: { skip?: number; take?: number }): Promise<Student[]> {
     return api.get<Student[]>('/students', { skip: params?.skip, take: params?.take ?? 20 });
@@ -48,6 +53,17 @@ export const studentsService = {
 
   async update(id: string, input: UpdateStudentInput): Promise<Student> {
     return api.patch<Student>(`/students/${id}`, input);
+  },
+
+  async verify(
+    institutionId: string,
+    studentId: string,
+    input: VerifyStudentInput,
+  ): Promise<Student> {
+    return api.patch<Student>(
+      `/institutions/${institutionId}/students/${studentId}/verify`,
+      input,
+    );
   },
 
   async delete(id: string): Promise<void> {

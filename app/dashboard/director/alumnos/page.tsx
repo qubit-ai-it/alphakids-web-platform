@@ -24,6 +24,8 @@ export default function DirectorAlumnosPage() {
   const [error, setError] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [rejectingStudent, setRejectingStudent] = useState<Student | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedGradeId, setSelectedGradeId] = useState('');
@@ -139,9 +141,13 @@ export default function DirectorAlumnosPage() {
     }
   };
 
-  const handleStatusChange = async (student: Student, newStatus: 'VERIFIED' | 'REJECTED') => {
+  const handleStatusChange = async (student: Student, newStatus: 'VERIFIED' | 'REJECTED', reason: string = '') => {
+    if (!institutionId) return;
     try {
-      await studentsService.update(student.id, { verificationStatus: newStatus });
+      await studentsService.verify(institutionId, student.id, {
+        status: newStatus,
+        rejectionReason: newStatus === 'REJECTED' ? reason.trim() || undefined : undefined,
+      });
       addToast('success', 'Éxito', `Estudiante ${newStatus === 'VERIFIED' ? 'aprobado' : 'rechazado'}`);
       refetch();
     } catch (err) {
@@ -197,7 +203,7 @@ export default function DirectorAlumnosPage() {
             <button onClick={() => handleStatusChange(s, 'VERIFIED')} className="btn btn-2xs btn-ghost text-success-600 hover:bg-success-50" title="Aprobar">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
             </button>
-            <button onClick={() => handleStatusChange(s, 'REJECTED')} className="btn btn-2xs btn-ghost text-error-600 hover:bg-error-50" title="Rechazar">
+            <button onClick={() => { setRejectingStudent(s); setRejectReason(''); }} className="btn btn-2xs btn-ghost text-error-600 hover:bg-error-50" title="Rechazar">
               <span className="material-symbols-outlined text-[16px]">cancel</span>
             </button>
           </>
@@ -393,6 +399,53 @@ export default function DirectorAlumnosPage() {
               </Button>
               <Button size="sm" onClick={handleEditSave} disabled={formLoading || !selectedSectionId}>
                 {formLoading ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {rejectingStudent && (
+        <Modal>
+          <div className="modal-content max-w-[440px] w-full">
+            <div className="modal-header">
+              <h2 className="modal-title">Rechazar alumno</h2>
+              <button type="button" onClick={() => { setRejectingStudent(null); setRejectReason(''); }} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
+                <span className="material-symbols-outlined text-[24px]">close</span>
+              </button>
+            </div>
+            <div className="modal-body flex flex-col gap-[16px]">
+              <p className="text-[14px] text-secondary-700">
+                Vas a rechazar a <strong>{rejectingStudent.firstName} {rejectingStudent.lastName}</strong>.
+              </p>
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[13px] font-semibold text-secondary-700">Motivo</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="Motivo del rechazo (opcional)"
+                  className="input min-h-[100px] resize-y"
+                  rows={4}
+                />
+                <span className="text-[11px] text-secondary-400 self-end">{rejectReason.length}/500</span>
+              </div>
+            </div>
+            <div className="modal-footer flex justify-end gap-[12px]">
+              <Button variant="secondary" size="sm" onClick={() => { setRejectingStudent(null); setRejectReason(''); }}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const target = rejectingStudent;
+                  const reason = rejectReason;
+                  setRejectingStudent(null);
+                  setRejectReason('');
+                  await handleStatusChange(target, 'REJECTED', reason);
+                }}
+              >
+                Rechazar
               </Button>
             </div>
           </div>
