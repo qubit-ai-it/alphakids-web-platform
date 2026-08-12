@@ -13,9 +13,11 @@ import { gradesService } from '@/features/director/services/grades.service';
 import { getInstitutionId } from '@/shared/lib/jwt';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/lib/errors';
+import { useSetMobileAction } from '@/shared/contexts/MobileActionContext';
 import type { Student, Grade, Section } from '@/shared/lib/types';
 
 const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function DirectorAlumnosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -36,21 +38,24 @@ export default function DirectorAlumnosPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRejecting, setBulkRejecting] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState('');
   const initialized = useRef(false);
   const { addToast } = useToast();
-  
+
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const tabParam = searchParams?.get('tab');
   const verificationParam = searchParams?.get('verification');
-  
-  const initialVerification = verificationParam 
-    ? verificationParam 
-    : tabParam === 'pendientes' 
-      ? 'PENDING' 
+
+  const initialVerification = verificationParam
+    ? verificationParam
+    : tabParam === 'pendientes'
+      ? 'PENDING'
       : '';
-      
+
   const [filterVerification, setFilterVerification] = useState<string>(initialVerification);
 
   useEffect(() => {
@@ -58,18 +63,33 @@ export default function DirectorAlumnosPage() {
     else if (tabParam === 'pendientes') setFilterVerification('PENDING');
   }, [tabParam, verificationParam]);
 
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const refetch = useCallback(
-    (pageToLoad: number = page) => {
+    (pageToLoad?: number, searchText?: string) => {
       const id = getInstitutionId();
       if (!id) return;
+      const targetPage = pageToLoad ?? page;
+      const targetSearch = searchText ?? filterText;
       setIsLoading(true);
       setError(null);
       studentsService
-        .getDirectorStudents({ skip: pageToLoad * PAGE_SIZE, take: PAGE_SIZE })
+        .getDirectorStudents({
+          skip: targetPage * PAGE_SIZE,
+          take: PAGE_SIZE,
+          search: targetSearch.trim() || undefined,
+        })
         .then(({ items, total }) => {
           setStudents(items);
           setTotal(total);
-          setHasNextPage(total > (pageToLoad + 1) * PAGE_SIZE);
+          setHasNextPage(total > (targetPage + 1) * PAGE_SIZE);
           setIsLoading(false);
         })
         .catch((err: Error) => {
@@ -77,7 +97,7 @@ export default function DirectorAlumnosPage() {
           setIsLoading(false);
         });
     },
-    [page],
+    [page, filterText],
   );
 
   const handlePageChange = (next: number) => {
@@ -103,10 +123,19 @@ export default function DirectorAlumnosPage() {
     const id = getInstitutionId();
     setInstitutionId(id ?? null);
     if (id) {
-      void Promise.resolve().then(() => refetch(0));
+      void Promise.resolve().then(() => refetch(0, ''));
       fetchGrades();
     }
-  }, [refetch, fetchGrades]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setPage(0);
+      refetch(0, filterText);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handle);
+  }, [filterText, refetch]);
 
   const handleEdit = (s: Student) => {
     setEditingStudent(s);
@@ -158,17 +187,83 @@ export default function DirectorAlumnosPage() {
     }
   };
 
+  const handleBulkApprove = useCallback(async () => {
+    if (!institutionId || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          studentsService.verify(institutionId, id, { status: 'VERIFIED' }),
+        ),
+      );
+      addToast('success', 'Aprobación masiva', `${ids.length} estudiante(s) aprobado(s)`);
+      setSelectedIds(new Set());
+      refetch();
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    }
+  }, [institutionId, selectedIds, addToast, refetch]);
+
+  const openBulkRejectModal = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setBulkRejectReason('');
+    setBulkRejecting(true);
+  }, [selectedIds.size]);
+
+  const submitBulkReject = useCallback(async () => {
+    if (!institutionId || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const reason = bulkRejectReason.trim();
+    setBulkRejecting(false);
+    setBulkRejectReason('');
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          studentsService.verify(institutionId, id, {
+            status: 'REJECTED',
+            rejectionReason: reason || undefined,
+          }),
+        ),
+      );
+      addToast('success', 'Rechazo masivo', `${ids.length} estudiante(s) rechazado(s)`);
+      setSelectedIds(new Set());
+      refetch();
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    }
+  }, [institutionId, selectedIds, bulkRejectReason, addToast, refetch]);
+
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) => {
-        const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
-        const matchesText = !filterText || fullName.includes(filterText.toLowerCase());
         const matchesStatus = !filterStatus || (filterStatus === 'active' ? s.isActive : !s.isActive);
         const matchesVerification = !filterVerification || s.verificationStatus === filterVerification;
-        return matchesText && matchesStatus && matchesVerification;
+        return matchesStatus && matchesVerification;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [students, filterText, filterStatus, filterVerification]);
+  }, [students, filterStatus, filterVerification]);
+
+  const pendingInPage = useMemo(
+    () => students.filter((s) => s.verificationStatus === 'PENDING').map((s) => s.id),
+    [students],
+  );
+
+  const allPendingSelected =
+    pendingInPage.length > 0 && pendingInPage.every((id) => selectedIds.has(id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPendingSelected) {
+        for (const id of pendingInPage) next.delete(id);
+      } else {
+        for (const id of pendingInPage) next.add(id);
+      }
+      return next;
+    });
+  };
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('es-PE', {
@@ -186,6 +281,28 @@ export default function DirectorAlumnosPage() {
   };
 
   const columns = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          checked={allPendingSelected}
+          disabled={pendingInPage.length === 0}
+          onChange={toggleSelectAll}
+          aria-label="Seleccionar todos los pendientes"
+        />
+      ),
+      className: 'w-[40px]',
+      render: (s: Student) =>
+        s.verificationStatus === 'PENDING' ? (
+          <input
+            type="checkbox"
+            checked={selectedIds.has(s.id)}
+            onChange={() => toggleSelected(s.id)}
+            aria-label={`Seleccionar ${s.firstName} ${s.lastName}`}
+          />
+        ) : null,
+    },
     { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
     { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
     { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
@@ -214,6 +331,17 @@ export default function DirectorAlumnosPage() {
     )},
   ];
 
+  const setMobileAction = useSetMobileAction(null);
+  useEffect(() => {
+    setMobileAction({
+      label: 'Aprobar seleccionados',
+      icon: 'check_circle',
+      onClick: () => { void handleBulkApprove(); },
+      disabled: selectedIds.size === 0,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, handleBulkApprove, setMobileAction]);
+
   if (!institutionId) {
     return (
       <div>
@@ -225,9 +353,32 @@ export default function DirectorAlumnosPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Alumnos</h1>
-        <p className="page-subtitle">Visualización y gestión de alumnos</p>
+      <div className="page-header flex items-center justify-between gap-[12px] flex-wrap">
+        <div>
+          <h1 className="page-title">Alumnos</h1>
+          <p className="page-subtitle">Visualización y gestión de alumnos</p>
+        </div>
+        <div className="flex items-center gap-[8px]">
+          <Button
+            onClick={handleBulkApprove}
+            size="sm"
+            disabled={selectedIds.size === 0}
+            className="hidden md:inline-flex"
+          >
+            <span className="material-symbols-outlined text-[18px] mr-[4px]">check_circle</span>
+            Aprobar ({selectedIds.size})
+          </Button>
+          <Button
+            onClick={openBulkRejectModal}
+            size="sm"
+            disabled={selectedIds.size === 0}
+            className="hidden md:inline-flex"
+            variant="danger"
+          >
+            <span className="material-symbols-outlined text-[18px] mr-[4px]">cancel</span>
+            Rechazar ({selectedIds.size})
+          </Button>
+        </div>
       </div>
 
       <div className="mb-[16px] flex items-center gap-[12px] flex-wrap">
@@ -236,7 +387,7 @@ export default function DirectorAlumnosPage() {
           <input
             type="text"
             value={filterText}
-            onChange={(e) => { setFilterText(e.target.value); setPage(0); }}
+            onChange={(e) => setFilterText(e.target.value)}
             placeholder="Buscar por nombre..."
             className="input"
           />
@@ -251,7 +402,15 @@ export default function DirectorAlumnosPage() {
         </div>
         <div className="flex items-center gap-[8px]">
           <label className="text-[13px] font-medium text-secondary-600">Solicitud:</label>
-          <select value={filterVerification} onChange={(e) => { setFilterVerification(e.target.value); router.replace('/dashboard/director/alumnos'); }} className="input max-w-[150px]">
+          <select
+            value={filterVerification}
+            onChange={(e) => {
+              setFilterVerification(e.target.value);
+              setSelectedIds(new Set());
+              router.replace('/dashboard/director/alumnos');
+            }}
+            className="input max-w-[150px]"
+          >
             <option value="">Todas</option>
             <option value="VERIFIED">Aprobados</option>
             <option value="PENDING">Pendientes</option>
@@ -269,6 +428,7 @@ export default function DirectorAlumnosPage() {
                 setFilterText('');
                 setFilterStatus('');
                 setFilterVerification('');
+                setSelectedIds(new Set());
                 router.replace('/dashboard/director/alumnos');
               }}
               className="gap-2"
@@ -281,13 +441,13 @@ export default function DirectorAlumnosPage() {
       </div>
 
       <Table<Student>
-        columns={columns}
+        columns={columns as unknown as Parameters<typeof Table<Student>>[0]['columns']}
         data={filteredStudents}
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
         error={error}
         onRetry={() => refetch(page)}
-        emptyMessage={filterText || filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos registrados en esta institución.'}
+        emptyMessage={filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos registrados en esta institución.'}
       />
 
       <Pagination
@@ -446,6 +606,48 @@ export default function DirectorAlumnosPage() {
                   setRejectReason('');
                   await handleStatusChange(target, 'REJECTED', reason);
                 }}
+              >
+                Rechazar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {bulkRejecting && (
+        <Modal>
+          <div className="modal-content max-w-[440px] w-full">
+            <div className="modal-header">
+              <h2 className="modal-title">Rechazar {selectedIds.size} alumno(s)</h2>
+              <button type="button" onClick={() => { setBulkRejecting(false); setBulkRejectReason(''); }} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
+                <span className="material-symbols-outlined text-[24px]">close</span>
+              </button>
+            </div>
+            <div className="modal-body flex flex-col gap-[16px]">
+              <p className="text-[14px] text-secondary-700">
+                Vas a rechazar a <strong>{selectedIds.size}</strong> estudiante(s) pendiente(s). El mismo motivo se aplicará a todos.
+              </p>
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[13px] font-semibold text-secondary-700">Motivo</label>
+                <textarea
+                  value={bulkRejectReason}
+                  onChange={(e) => setBulkRejectReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="Motivo del rechazo (opcional)"
+                  className="input min-h-[100px] resize-y"
+                  rows={4}
+                />
+                <span className="text-[11px] text-secondary-400 self-end">{bulkRejectReason.length}/500</span>
+              </div>
+            </div>
+            <div className="modal-footer flex justify-end gap-[12px]">
+              <Button variant="secondary" size="sm" onClick={() => { setBulkRejecting(false); setBulkRejectReason(''); }}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => { void submitBulkReject(); }}
               >
                 Rechazar
               </Button>

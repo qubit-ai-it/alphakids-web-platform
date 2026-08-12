@@ -39,8 +39,12 @@ export const studentsService = {
   },
 
   /** Director-scoped: students from the director's institutions */
-  async getDirectorStudents(params?: { skip?: number; take?: number }): Promise<{ items: Student[]; total: number }> {
-    return api.get<{ items: Student[]; total: number }>('/director/students', { skip: params?.skip, take: params?.take ?? 20 });
+  async getDirectorStudents(params?: { skip?: number; take?: number; search?: string }): Promise<{ items: Student[]; total: number }> {
+    return api.get<{ items: Student[]; total: number }>('/director/students', {
+      skip: params?.skip,
+      take: params?.take ?? 20,
+      search: params?.search?.trim() ? params.search.trim() : undefined,
+    });
   },
 
   async getById(id: string): Promise<Student> {
