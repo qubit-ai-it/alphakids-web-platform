@@ -28,8 +28,6 @@ export default function DirectorAlumnosPage() {
   const [error, setError] = useState<string | null>(null);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [rejectingStudent, setRejectingStudent] = useState<Student | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedGradeId, setSelectedGradeId] = useState('');
@@ -182,26 +180,49 @@ export default function DirectorAlumnosPage() {
     }
   };
 
-  const handleStatusChange = async (student: Student, newStatus: 'VERIFIED' | 'REJECTED', reason: string = '') => {
-    if (!institutionId) return;
+  const handleBulkApprove = useCallback(async () => {
+    if (!institutionId || selectedIds.size === 0) return;
     try {
-      await studentsService.verify(institutionId, student.id, {
-        status: newStatus,
-        rejectionReason: newStatus === 'REJECTED' ? reason.trim() || undefined : undefined,
-      });
-      addToast('success', 'Éxito', `Estudiante ${newStatus === 'VERIFIED' ? 'aprobado' : 'rechazado'}`);
-      setSelectedIds((prev) => {
-        if (!prev.has(student.id)) return prev;
-        const next = new Set(prev);
-        next.delete(student.id);
-        return next;
-      });
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          studentsService.verify(institutionId, id, { status: 'VERIFIED' }),
+        ),
+      );
+      addToast('success', 'Éxito', `${selectedIds.size} alumno(s) aprobado(s)`);
+      setSelectedIds(new Set());
       refetch();
+      void fetchPendingCount();
     } catch (err) {
       const { title, message } = getErrorMessage(err);
       addToast('error', title, message);
     }
-  };
+  }, [institutionId, selectedIds, refetch, fetchPendingCount, addToast]);
+
+  const handleBulkReject = useCallback(async () => {
+    if (!institutionId || selectedIds.size === 0) return;
+    const reason =
+      window.prompt(
+        `Vas a rechazar ${selectedIds.size} alumno(s). Motivo (opcional):`,
+        '',
+      ) ?? '';
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          studentsService.verify(institutionId, id, {
+            status: 'REJECTED',
+            rejectionReason: reason.trim() || undefined,
+          }),
+        ),
+      );
+      addToast('success', 'Éxito', `${selectedIds.size} alumno(s) rechazado(s)`);
+      setSelectedIds(new Set());
+      refetch();
+      void fetchPendingCount();
+    } catch (err) {
+      const { title, message } = getErrorMessage(err);
+      addToast('error', title, message);
+    }
+  }, [institutionId, selectedIds, refetch, fetchPendingCount, addToast]);
 
   const filteredStudents = useMemo(() => {
     return [...students]
@@ -230,33 +251,18 @@ export default function DirectorAlumnosPage() {
 
   const columns = viewMode === 'pending'
     ? [
-        {
-          key: 'select',
-          header: '',
-          className: 'w-[40px]',
-          render: (s: Student) => (
+        { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
+        { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
+        { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
+        { key: 'actions', header: 'Acciones', className: 'w-[60px]', render: (s: Student) => (
+          <div className="flex items-center gap-[4px]">
             <input
               type="checkbox"
               checked={selectedIds.has(s.id)}
               onChange={() => toggleSelected(s.id)}
               aria-label={`Seleccionar ${s.firstName} ${s.lastName}`}
+              className="h-[16px] w-[16px] cursor-pointer accent-primary-600"
             />
-          ),
-        },
-        { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
-        { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
-        { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
-        { key: 'actions', header: 'Acciones', className: 'w-[140px]', render: (s: Student) => (
-          <div className="flex items-center gap-[4px]">
-            <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
-              <span className="material-symbols-outlined text-[16px]">visibility</span>
-            </button>
-            <button onClick={() => handleStatusChange(s, 'VERIFIED')} className="btn btn-2xs btn-ghost text-success-600 hover:bg-success-50" title="Aprobar">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-            </button>
-            <button onClick={() => { setRejectingStudent(s); setRejectReason(''); }} className="btn btn-2xs btn-ghost text-error-600 hover:bg-error-50" title="Rechazar">
-              <span className="material-symbols-outlined text-[16px]">cancel</span>
-            </button>
           </div>
         )},
       ]
@@ -279,6 +285,14 @@ export default function DirectorAlumnosPage() {
 
   const setMobileAction = useSetMobileAction(null);
   useEffect(() => {
+    if (viewMode === 'pending' && selectedIds.size > 0) {
+      setMobileAction({
+        label: `Aprobar (${selectedIds.size})`,
+        icon: 'check_circle',
+        onClick: () => { void handleBulkApprove(); },
+      });
+      return;
+    }
     setMobileAction(
       viewMode === 'pending'
         ? {
@@ -294,7 +308,7 @@ export default function DirectorAlumnosPage() {
           },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, pendingCount, setMobileAction]);
+  }, [viewMode, pendingCount, selectedIds, setMobileAction]);
 
   if (!institutionId) {
     return (
@@ -367,6 +381,29 @@ export default function DirectorAlumnosPage() {
               <option value="inactive">Inactivo</option>
             </select>
           </div>
+        )}
+
+        {viewMode === 'pending' && (
+          <>
+            <Button
+              onClick={handleBulkApprove}
+              size="sm"
+              disabled={selectedIds.size === 0}
+              className="ml-auto"
+            >
+              <span className="material-symbols-outlined text-[18px] mr-[4px]">check_circle</span>
+              Aprobar ({selectedIds.size})
+            </Button>
+            <Button
+              onClick={handleBulkReject}
+              size="sm"
+              disabled={selectedIds.size === 0}
+              variant="danger"
+            >
+              <span className="material-symbols-outlined text-[18px] mr-[4px]">cancel</span>
+              Rechazar ({selectedIds.size})
+            </Button>
+          </>
         )}
 
         <div className="ml-auto flex items-center">
@@ -508,53 +545,6 @@ export default function DirectorAlumnosPage() {
               </Button>
               <Button size="sm" onClick={handleEditSave} disabled={formLoading || !selectedSectionId}>
                 {formLoading ? 'Guardando...' : 'Guardar'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {rejectingStudent && (
-        <Modal>
-          <div className="modal-content max-w-[440px] w-full">
-            <div className="modal-header">
-              <h2 className="modal-title">Rechazar alumno</h2>
-              <button type="button" onClick={() => { setRejectingStudent(null); setRejectReason(''); }} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
-                <span className="material-symbols-outlined text-[24px]">close</span>
-              </button>
-            </div>
-            <div className="modal-body flex flex-col gap-[16px]">
-              <p className="text-[14px] text-secondary-700">
-                Vas a rechazar a <strong>{rejectingStudent.firstName} {rejectingStudent.lastName}</strong>.
-              </p>
-              <div className="flex flex-col gap-[4px]">
-                <label className="text-[13px] font-semibold text-secondary-700">Motivo</label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  maxLength={500}
-                  placeholder="Motivo del rechazo (opcional)"
-                  className="input min-h-[100px] resize-y"
-                  rows={4}
-                />
-                <span className="text-[11px] text-secondary-400 self-end">{rejectReason.length}/500</span>
-              </div>
-            </div>
-            <div className="modal-footer flex justify-end gap-[12px]">
-              <Button variant="secondary" size="sm" onClick={() => { setRejectingStudent(null); setRejectReason(''); }}>
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                onClick={async () => {
-                  const target = rejectingStudent;
-                  const reason = rejectReason;
-                  setRejectingStudent(null);
-                  setRejectReason('');
-                  await handleStatusChange(target, 'REJECTED', reason);
-                }}
-              >
-                Rechazar
               </Button>
             </div>
           </div>
