@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { Table } from '@/shared/components/ui/Table';
 import { Pagination } from '@/shared/components/ui/Pagination';
 import { Badge } from '@/shared/components/ui/Badge';
@@ -18,6 +17,8 @@ import type { Student, Grade, Section } from '@/shared/lib/types';
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
+
+type ViewMode = 'verified' | 'pending';
 
 export default function DirectorAlumnosPage() {
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -38,30 +39,14 @@ export default function DirectorAlumnosPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('verified');
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkRejecting, setBulkRejecting] = useState(false);
-  const [bulkRejectReason, setBulkRejectReason] = useState('');
   const initialized = useRef(false);
+  const viewModeRef = useRef<ViewMode>(viewMode);
   const { addToast } = useToast();
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const tabParam = searchParams?.get('tab');
-  const verificationParam = searchParams?.get('verification');
-
-  const initialVerification = verificationParam
-    ? verificationParam
-    : tabParam === 'pendientes'
-      ? 'PENDING'
-      : '';
-
-  const [filterVerification, setFilterVerification] = useState<string>(initialVerification);
-
-  useEffect(() => {
-    if (verificationParam) setFilterVerification(verificationParam);
-    else if (tabParam === 'pendientes') setFilterVerification('PENDING');
-  }, [tabParam, verificationParam]);
+  viewModeRef.current = viewMode;
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -70,6 +55,21 @@ export default function DirectorAlumnosPage() {
       else next.add(id);
       return next;
     });
+  }, []);
+
+  const fetchPendingCount = useCallback(async () => {
+    const id = getInstitutionId();
+    if (!id) return;
+    try {
+      const { total: count } = await studentsService.getDirectorStudents({
+        skip: 0,
+        take: 1,
+        verificationStatus: 'PENDING',
+      });
+      setPendingCount(count);
+    } catch {
+      // preserve last known count
+    }
   }, []);
 
   const refetch = useCallback(
@@ -85,6 +85,7 @@ export default function DirectorAlumnosPage() {
           skip: targetPage * PAGE_SIZE,
           take: PAGE_SIZE,
           search: targetSearch.trim() || undefined,
+          verificationStatus: viewModeRef.current === 'pending' ? 'PENDING' : 'VERIFIED',
         })
         .then(({ items, total }) => {
           setStudents(items);
@@ -96,8 +97,9 @@ export default function DirectorAlumnosPage() {
           setError(err.message || 'Error al cargar alumnos');
           setIsLoading(false);
         });
+      void fetchPendingCount();
     },
-    [page, filterText],
+    [page, filterText, fetchPendingCount],
   );
 
   const handlePageChange = (next: number) => {
@@ -136,6 +138,14 @@ export default function DirectorAlumnosPage() {
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [filterText, refetch]);
+
+  useEffect(() => {
+    if (!institutionId) return;
+    setPage(0);
+    setSelectedIds(new Set());
+    refetch(0, filterText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   const handleEdit = (s: Student) => {
     setEditingStudent(s);
@@ -180,90 +190,28 @@ export default function DirectorAlumnosPage() {
         rejectionReason: newStatus === 'REJECTED' ? reason.trim() || undefined : undefined,
       });
       addToast('success', 'Éxito', `Estudiante ${newStatus === 'VERIFIED' ? 'aprobado' : 'rechazado'}`);
+      setSelectedIds((prev) => {
+        if (!prev.has(student.id)) return prev;
+        const next = new Set(prev);
+        next.delete(student.id);
+        return next;
+      });
       refetch();
     } catch (err) {
       const { title, message } = getErrorMessage(err);
       addToast('error', title, message);
     }
   };
-
-  const handleBulkApprove = useCallback(async () => {
-    if (!institutionId || selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    try {
-      await Promise.all(
-        ids.map((id) =>
-          studentsService.verify(institutionId, id, { status: 'VERIFIED' }),
-        ),
-      );
-      addToast('success', 'Aprobación masiva', `${ids.length} estudiante(s) aprobado(s)`);
-      setSelectedIds(new Set());
-      refetch();
-    } catch (err) {
-      const { title, message } = getErrorMessage(err);
-      addToast('error', title, message);
-    }
-  }, [institutionId, selectedIds, addToast, refetch]);
-
-  const openBulkRejectModal = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    setBulkRejectReason('');
-    setBulkRejecting(true);
-  }, [selectedIds.size]);
-
-  const submitBulkReject = useCallback(async () => {
-    if (!institutionId || selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
-    const reason = bulkRejectReason.trim();
-    setBulkRejecting(false);
-    setBulkRejectReason('');
-    try {
-      await Promise.all(
-        ids.map((id) =>
-          studentsService.verify(institutionId, id, {
-            status: 'REJECTED',
-            rejectionReason: reason || undefined,
-          }),
-        ),
-      );
-      addToast('success', 'Rechazo masivo', `${ids.length} estudiante(s) rechazado(s)`);
-      setSelectedIds(new Set());
-      refetch();
-    } catch (err) {
-      const { title, message } = getErrorMessage(err);
-      addToast('error', title, message);
-    }
-  }, [institutionId, selectedIds, bulkRejectReason, addToast, refetch]);
 
   const filteredStudents = useMemo(() => {
-    return students
+    return [...students]
       .filter((s) => {
-        const matchesStatus = !filterStatus || (filterStatus === 'active' ? s.isActive : !s.isActive);
-        const matchesVerification = !filterVerification || s.verificationStatus === filterVerification;
-        return matchesStatus && matchesVerification;
+        if (viewMode !== 'verified') return true;
+        if (!filterStatus) return true;
+        return filterStatus === 'active' ? s.isActive : !s.isActive;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [students, filterStatus, filterVerification]);
-
-  const pendingInPage = useMemo(
-    () => students.filter((s) => s.verificationStatus === 'PENDING').map((s) => s.id),
-    [students],
-  );
-
-  const allPendingSelected =
-    pendingInPage.length > 0 && pendingInPage.every((id) => selectedIds.has(id));
-
-  const toggleSelectAll = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allPendingSelected) {
-        for (const id of pendingInPage) next.delete(id);
-      } else {
-        for (const id of pendingInPage) next.add(id);
-      }
-      return next;
-    });
-  };
+  }, [students, filterStatus, viewMode]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('es-PE', {
@@ -280,67 +228,73 @@ export default function DirectorAlumnosPage() {
     OTHER: 'Otro',
   };
 
-  const columns = [
-    {
-      key: 'select',
-      header: (
-        <input
-          type="checkbox"
-          checked={allPendingSelected}
-          disabled={pendingInPage.length === 0}
-          onChange={toggleSelectAll}
-          aria-label="Seleccionar todos los pendientes"
-        />
-      ),
-      className: 'w-[40px]',
-      render: (s: Student) =>
-        s.verificationStatus === 'PENDING' ? (
-          <input
-            type="checkbox"
-            checked={selectedIds.has(s.id)}
-            onChange={() => toggleSelected(s.id)}
-            aria-label={`Seleccionar ${s.firstName} ${s.lastName}`}
-          />
-        ) : null,
-    },
-    { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
-    { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
-    { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
-    { key: 'status', header: 'Estado', className: 'w-[90px]', render: (s: Student) => <Badge variant={s.isActive ? 'success' : 'error'}>{s.isActive ? 'Activo' : 'Inactivo'}</Badge> },
-    { key: 'actions', header: 'Acciones', className: 'w-[140px]', render: (s: Student) => (
-      <div className="flex items-center gap-[4px]">
-        <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
-          <span className="material-symbols-outlined text-[16px]">visibility</span>
-        </button>
-        {(!s.verificationStatus || s.verificationStatus === 'VERIFIED') && (
-          <button onClick={() => handleEdit(s)} className="btn btn-2xs btn-ghost" title="Asignar sección">
-            <span className="material-symbols-outlined text-[16px]">edit</span>
-          </button>
-        )}
-        {s.verificationStatus === 'PENDING' && (
-          <>
+  const columns = viewMode === 'pending'
+    ? [
+        {
+          key: 'select',
+          header: '',
+          className: 'w-[40px]',
+          render: (s: Student) => (
+            <input
+              type="checkbox"
+              checked={selectedIds.has(s.id)}
+              onChange={() => toggleSelected(s.id)}
+              aria-label={`Seleccionar ${s.firstName} ${s.lastName}`}
+            />
+          ),
+        },
+        { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
+        { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
+        { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
+        { key: 'actions', header: 'Acciones', className: 'w-[140px]', render: (s: Student) => (
+          <div className="flex items-center gap-[4px]">
+            <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
+              <span className="material-symbols-outlined text-[16px]">visibility</span>
+            </button>
             <button onClick={() => handleStatusChange(s, 'VERIFIED')} className="btn btn-2xs btn-ghost text-success-600 hover:bg-success-50" title="Aprobar">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
             </button>
             <button onClick={() => { setRejectingStudent(s); setRejectReason(''); }} className="btn btn-2xs btn-ghost text-error-600 hover:bg-error-50" title="Rechazar">
               <span className="material-symbols-outlined text-[16px]">cancel</span>
             </button>
-          </>
-        )}
-      </div>
-    )},
-  ];
+          </div>
+        )},
+      ]
+    : [
+        { key: 'name', header: 'Nombre', render: (s: Student) => <span className="text-[14px] font-medium text-secondary-900">{s.firstName} {s.lastName}</span> },
+        { key: 'section', header: 'Sección', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.section?.name ?? '-'}</span> },
+        { key: 'birthDate', header: 'Nacimiento', render: (s: Student) => <span className="text-[13px] text-secondary-600">{s.birthDate ? new Date(s.birthDate).toLocaleDateString('es-PE') : '-'}</span> },
+        { key: 'status', header: 'Estado', className: 'w-[90px]', render: (s: Student) => <Badge variant={s.isActive ? 'success' : 'error'}>{s.isActive ? 'Activo' : 'Inactivo'}</Badge> },
+        { key: 'actions', header: 'Acciones', className: 'w-[140px]', render: (s: Student) => (
+          <div className="flex items-center gap-[4px]">
+            <button onClick={() => setViewingStudent(s)} className="btn btn-2xs btn-ghost" title="Ver detalle">
+              <span className="material-symbols-outlined text-[16px]">visibility</span>
+            </button>
+            <button onClick={() => handleEdit(s)} className="btn btn-2xs btn-ghost" title="Asignar sección">
+              <span className="material-symbols-outlined text-[16px]">edit</span>
+            </button>
+          </div>
+        )},
+      ];
 
   const setMobileAction = useSetMobileAction(null);
   useEffect(() => {
-    setMobileAction({
-      label: 'Aprobar seleccionados',
-      icon: 'check_circle',
-      onClick: () => { void handleBulkApprove(); },
-      disabled: selectedIds.size === 0,
-    });
+    setMobileAction(
+      viewMode === 'pending'
+        ? {
+            label: 'Volver a aprobados',
+            icon: 'arrow_back',
+            onClick: () => { setViewMode('verified'); },
+          }
+        : {
+            label: `Aprobar (${pendingCount ?? 0})`,
+            icon: 'check_circle',
+            onClick: () => { setViewMode('pending'); },
+            disabled: (pendingCount ?? 0) === 0,
+          },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, handleBulkApprove, setMobileAction]);
+  }, [viewMode, pendingCount, setMobileAction]);
 
   if (!institutionId) {
     return (
@@ -351,33 +305,45 @@ export default function DirectorAlumnosPage() {
     );
   }
 
+  const subtitle = viewMode === 'pending'
+    ? 'Pendientes de aprobación'
+    : 'Alumnos activos en la institución';
+
+  const emptyMessage = viewMode === 'pending'
+    ? 'No hay solicitudes pendientes.'
+    : filterStatus
+      ? 'No hay alumnos que coincidan con los filtros.'
+      : 'No hay alumnos registrados en esta institución.';
+
   return (
     <div>
       <div className="page-header flex items-center justify-between gap-[12px] flex-wrap">
         <div>
           <h1 className="page-title">Alumnos</h1>
-          <p className="page-subtitle">Visualización y gestión de alumnos</p>
+          <p className="page-subtitle">{subtitle}</p>
         </div>
         <div className="flex items-center gap-[8px]">
-          <Button
-            onClick={handleBulkApprove}
-            size="sm"
-            disabled={selectedIds.size === 0}
-            className="hidden md:inline-flex"
-          >
-            <span className="material-symbols-outlined text-[18px] mr-[4px]">check_circle</span>
-            Aprobar ({selectedIds.size})
-          </Button>
-          <Button
-            onClick={openBulkRejectModal}
-            size="sm"
-            disabled={selectedIds.size === 0}
-            className="hidden md:inline-flex"
-            variant="danger"
-          >
-            <span className="material-symbols-outlined text-[18px] mr-[4px]">cancel</span>
-            Rechazar ({selectedIds.size})
-          </Button>
+          {viewMode === 'pending' ? (
+            <Button
+              onClick={() => setViewMode('verified')}
+              size="sm"
+              variant="ghost"
+              className="hidden md:inline-flex"
+            >
+              <span className="material-symbols-outlined text-[18px] mr-[4px]">arrow_back</span>
+              Volver a aprobados
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setViewMode('pending')}
+              size="sm"
+              disabled={(pendingCount ?? 0) === 0}
+              className="hidden md:inline-flex"
+            >
+              <span className="material-symbols-outlined text-[18px] mr-[4px]">check_circle</span>
+              Aprobar ({pendingCount ?? 0})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -392,44 +358,25 @@ export default function DirectorAlumnosPage() {
             className="input"
           />
         </div>
-        <div className="flex items-center gap-[8px]">
-          <label className="text-[13px] font-medium text-secondary-600">Estado de Cuenta:</label>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }} className="input max-w-[150px]">
-            <option value="">Todos</option>
-            <option value="active">Activo</option>
-            <option value="inactive">Inactivo</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-[8px]">
-          <label className="text-[13px] font-medium text-secondary-600">Solicitud:</label>
-          <select
-            value={filterVerification}
-            onChange={(e) => {
-              setFilterVerification(e.target.value);
-              setSelectedIds(new Set());
-              router.replace('/dashboard/director/alumnos');
-            }}
-            className="input max-w-[150px]"
-          >
-            <option value="">Todas</option>
-            <option value="VERIFIED">Aprobados</option>
-            <option value="PENDING">Pendientes</option>
-            <option value="REJECTED">Rechazados</option>
-          </select>
-        </div>
-
+        {viewMode === 'verified' && (
+          <div className="flex items-center gap-[8px]">
+            <label className="text-[13px] font-medium text-secondary-600">Estado de Cuenta:</label>
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }} className="input max-w-[150px]">
+              <option value="">Todos</option>
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
+          </div>
+        )}
 
         <div className="ml-auto flex items-center">
-          {(filterText || filterStatus || filterVerification) && (
+          {(filterText || (viewMode === 'verified' && filterStatus)) && (
             <Button
               variant="primary"
               size="sm"
               onClick={() => {
                 setFilterText('');
-                setFilterStatus('');
-                setFilterVerification('');
-                setSelectedIds(new Set());
-                router.replace('/dashboard/director/alumnos');
+                if (viewMode === 'verified') setFilterStatus('');
               }}
               className="gap-2"
             >
@@ -447,7 +394,7 @@ export default function DirectorAlumnosPage() {
         isLoading={isLoading}
         error={error}
         onRetry={() => refetch(page)}
-        emptyMessage={filterStatus ? 'No hay alumnos que coincidan con los filtros.' : 'No hay alumnos registrados en esta institución.'}
+        emptyMessage={emptyMessage}
       />
 
       <Pagination
@@ -606,48 +553,6 @@ export default function DirectorAlumnosPage() {
                   setRejectReason('');
                   await handleStatusChange(target, 'REJECTED', reason);
                 }}
-              >
-                Rechazar
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {bulkRejecting && (
-        <Modal>
-          <div className="modal-content max-w-[440px] w-full">
-            <div className="modal-header">
-              <h2 className="modal-title">Rechazar {selectedIds.size} alumno(s)</h2>
-              <button type="button" onClick={() => { setBulkRejecting(false); setBulkRejectReason(''); }} className="text-secondary-600 hover:text-secondary-900 cursor-pointer">
-                <span className="material-symbols-outlined text-[24px]">close</span>
-              </button>
-            </div>
-            <div className="modal-body flex flex-col gap-[16px]">
-              <p className="text-[14px] text-secondary-700">
-                Vas a rechazar a <strong>{selectedIds.size}</strong> estudiante(s) pendiente(s). El mismo motivo se aplicará a todos.
-              </p>
-              <div className="flex flex-col gap-[4px]">
-                <label className="text-[13px] font-semibold text-secondary-700">Motivo</label>
-                <textarea
-                  value={bulkRejectReason}
-                  onChange={(e) => setBulkRejectReason(e.target.value)}
-                  maxLength={500}
-                  placeholder="Motivo del rechazo (opcional)"
-                  className="input min-h-[100px] resize-y"
-                  rows={4}
-                />
-                <span className="text-[11px] text-secondary-400 self-end">{bulkRejectReason.length}/500</span>
-              </div>
-            </div>
-            <div className="modal-footer flex justify-end gap-[12px]">
-              <Button variant="secondary" size="sm" onClick={() => { setBulkRejecting(false); setBulkRejectReason(''); }}>
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => { void submitBulkReject(); }}
               >
                 Rechazar
               </Button>
