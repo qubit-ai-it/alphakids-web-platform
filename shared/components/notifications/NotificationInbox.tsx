@@ -15,7 +15,7 @@ interface NotificationInboxProps {
 }
 
 export function NotificationInbox({ onClose }: NotificationInboxProps) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading, mutate } = useNotifications();
   const [tab, setTab] = useState<'unread' | 'read'>('unread');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const router = useRouter();
@@ -41,6 +41,7 @@ export function NotificationInbox({ onClose }: NotificationInboxProps) {
     try {
       await studentsService.verify(institutionId, notif.referenceId, { status });
       await markAsRead(notif.id);
+      await mutate();
       addToast('success', status === 'VERIFIED' ? 'Estudiante aprobado' : 'Estudiante rechazado');
     } catch (err) {
       const { title, message } = getErrorMessage(err);

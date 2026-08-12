@@ -116,5 +116,6 @@ export function useNotifications() {
     isError: error,
     markAsRead,
     markAllAsRead,
+    mutate,
   };
 }
