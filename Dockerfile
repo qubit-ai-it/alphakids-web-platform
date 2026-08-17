@@ -9,6 +9,13 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
 COPY . .
+
+# Next inlines NEXT_PUBLIC_* at `next build`. Render env vars only reach
+# this stage if they are declared as ARG; otherwise the client keeps
+# the localhost:3000 fallback and login/OAuth fail in production.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN pnpm run build
 
 # ---- Production Stage ----
